@@ -24,54 +24,46 @@ SOFTWARE.
 
 */
 
-#include <Webler.hpp>
-#include <chrono>
-#include <iostream>
-#include <Windows.h>
+#pragma once
 
+#include <Response.hpp>
+#include <Request.hpp>
+#include <functional>
 
+/**
+* \breif Webler namespace scope.
+*
+*/
 namespace Webler
 {
 
-	Server::Server()
-	{
-	}
+	class Server;
 
-	Server::~Server()
-	{
-	}
-
-	void Server::Listen(const unsigned short p_Port)
+	class Router
 	{
 
-	}
+	public:
 
-	void Server::Mute(const unsigned short p_Port)
-	{
+		friend class Server;
 
-	}
+		typedef std::function<void(Request &, Response &)> CallbackFunction;
 
-	int Server::Stop()
-	{
-		if (m_Started.Get() == false)
-		{
-			return 0;
-		}
+		/**
+		* \breif Route GET request
+		*
+		* \param[in]	p_Route	Route to given callback function.
+		*						Specify wildcard arguments in curly brackets.
+		*						Example: /customer/{name}
+		* \param[in]	p_Callback Callback function for request.
+		*
+		*/
+		void Get(const std::string & p_Route, CallbackFunction p_Callback);
 
-		m_ExitSemaphore.Notify();
-		return 0;
-	}
+	private:
 
-	int Server::Start(int argc, char ** argv)
-	{
-		// Call user defined setup function.
-		Router router(this);
-		Setup(router);
+		Router(Server * p_Server);
+		~Router();
 
-		// Flag the server as running and wait for it to exit.
-		m_Started.Set(true);
-		m_ExitSemaphore.Wait();
-		return 0;
-	}
+	};
 
 }

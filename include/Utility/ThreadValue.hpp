@@ -24,54 +24,50 @@ SOFTWARE.
 
 */
 
-#include <Webler.hpp>
-#include <chrono>
-#include <iostream>
-#include <Windows.h>
+#pragma once
 
+#include <mutex>
 
 namespace Webler
 {
 
-	Server::Server()
-	{
-	}
-
-	Server::~Server()
-	{
-	}
-
-	void Server::Listen(const unsigned short p_Port)
+	namespace Utility
 	{
 
-	}
-
-	void Server::Mute(const unsigned short p_Port)
-	{
-
-	}
-
-	int Server::Stop()
-	{
-		if (m_Started.Get() == false)
+		template<typename T>
+		class ThreadValue
 		{
-			return 0;
-		}
 
-		m_ExitSemaphore.Notify();
-		return 0;
-	}
+		public:
 
-	int Server::Start(int argc, char ** argv)
-	{
-		// Call user defined setup function.
-		Router router(this);
-		Setup(router);
+			ThreadValue()
+			{
+			}
 
-		// Flag the server as running and wait for it to exit.
-		m_Started.Set(true);
-		m_ExitSemaphore.Wait();
-		return 0;
+			ThreadValue(const T & p_Value) :
+				m_Value(p_Value)
+			{
+			}
+
+			void Set(const T & p_Value)
+			{
+				m_Mutex.lock();
+				m_Value = p_Value;
+				m_Mutex.unlock();
+			}
+
+			const T Get()
+			{
+				std::lock_guard<std::mutex> lock(m_Mutex);
+				return m_Value;
+			}
+
+		private:
+
+			std::mutex	m_Mutex;
+			T			m_Value;
+		};
+
 	}
 
 }

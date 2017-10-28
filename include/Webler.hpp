@@ -26,12 +26,29 @@ SOFTWARE.
 
 #pragma once
 
+#include <Router.hpp>
 #include <Response.hpp>
 #include <Request.hpp>
-#include <string>
+#include <Utility\Semaphore.hpp>
+#include <Utility\ThreadValue.hpp>
 #include <exception>
-#include <functional>
+#include <thread>
+#include <set>
+#include <type_traits>
+#include <signal.h>
 
+/**
+* \breif Forward declarations.
+*
+*/
+int main(int argc, char ** argv);
+void WeblerSignalHandler(int signal);
+
+
+/**
+* \breif Webler namespace scope.
+*
+*/
 namespace Webler
 {
 	/**
@@ -43,6 +60,7 @@ namespace Webler
 
 	public:
 
+
 		/**
 		* \breif Default constructor
 		*
@@ -53,18 +71,16 @@ namespace Webler
 		* \breif Destructor
 		*
 		*/
-		~Server();
+		virtual ~Server();
 
 		/**
-		* \breif Route GET request 
+		* \breif Application defined function.
+		*		 Called once by the Webler framework at server startup.
 		*
-		* \param[in]	p_Route	Route to given callback function.
-		*						Specify wildcard arguments in curly brackets.
-		*						Example: /customer/{name}
-		* \param[in]	p_Callback Callback function for request.
+		* \param p_Router Request router.
 		*
 		*/
-		void Get(const std::string & p_Route, std::function<void(Request &, Response &)> p_Callback);
+		virtual void Setup(Router & p_Router) = 0;
 
 		/**
 		* \breif Start listening on given port.
@@ -86,6 +102,63 @@ namespace Webler
 		*/
 		void Mute(const unsigned short p_Port);
 
+		/**
+		* \breif Stop the Webler server. The application will terminate.
+		*
+		*/
+		int Stop();
+
+		/**
+		* \breif Friend classes and functions
+		*
+		*/
+		friend class Router;							//< Friend router class.
+		friend int ::main(int argc, char ** argv);		//< Friend main function in order to call Start from main.
+		friend void ::WeblerSignalHandler(int signal);	//< Friend signlar handler function.
+
+	private:
+
+		/**
+		* \breif Function executed by main(argc, argv), starts the Webler server.
+		*
+		*/
+		int Start(int argc, char ** argv);
+
+		// Private typedefs
+		typedef std::set<std::thread *> ThreadSet;
+
+		// Private variables
+		ThreadSet					m_ListenThreads;
+		Utility::Semaphore			m_ExitSemaphore;
+		Utility::ThreadValue<bool>	m_Started;
+
 	};
 
 }
+
+
+/**
+* \breif	This macro must be called ONCE in the application
+*			and will start the server.
+*
+*/
+#define WeblerStart(WeblerServerClass)\
+	static WeblerServerClass weblerServerClass;\
+	\
+	void WeblerSignalHandler(int signal)\
+	{\
+		weblerServerClass.Stop();\
+	}\
+	\
+	int main(int argc, char ** argv)\
+	{\
+		if(std::is_base_of<Webler::Server, WeblerServerClass>::value == false)\
+		{\
+			throw std::string("Webler::Server is not base class of application class.");\
+		}\
+		\
+		signal(SIGABRT, WeblerSignalHandler);\
+		signal(SIGTERM, WeblerSignalHandler);\
+		signal(SIGBREAK, WeblerSignalHandler);\
+		return weblerServerClass.Start(argc, argv);\
+	}

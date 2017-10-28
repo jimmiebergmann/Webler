@@ -24,54 +24,49 @@ SOFTWARE.
 
 */
 
-#include <Webler.hpp>
-#include <chrono>
-#include <iostream>
-#include <Windows.h>
-
+#include <Utility/Semaphore.hpp>
 
 namespace Webler
 {
 
-	Server::Server()
-	{
-	}
-
-	Server::~Server()
-	{
-	}
-
-	void Server::Listen(const unsigned short p_Port)
+	namespace Utility
 	{
 
-	}
-
-	void Server::Mute(const unsigned short p_Port)
-	{
-
-	}
-
-	int Server::Stop()
-	{
-		if (m_Started.Get() == false)
+		Semaphore::Semaphore() :
+			m_Count(0)
 		{
-			return 0;
+
 		}
 
-		m_ExitSemaphore.Notify();
-		return 0;
-	}
+		void Semaphore::Notify()
+		{
+			std::unique_lock<decltype(m_Mutex)> lock(m_Mutex);
+			++m_Count;
+			m_Condition.notify_one();
+		}
 
-	int Server::Start(int argc, char ** argv)
-	{
-		// Call user defined setup function.
-		Router router(this);
-		Setup(router);
+		void Semaphore::Wait()
+		{
+			std::unique_lock<decltype(m_Mutex)> lock(m_Mutex);
+			while (!m_Count)
+			{
+				m_Condition.wait(lock);
+			}
+			--m_Count;
+		}
 
-		// Flag the server as running and wait for it to exit.
-		m_Started.Set(true);
-		m_ExitSemaphore.Wait();
-		return 0;
+		bool Semaphore::TryWait()
+		{
+			std::unique_lock<decltype(m_Mutex)> lock(m_Mutex);
+			if (m_Count)
+			{
+				--m_Count;
+				return true;
+			}
+
+			return false;
+		}
+
 	}
 
 }

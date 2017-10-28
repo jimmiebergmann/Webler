@@ -24,54 +24,25 @@ SOFTWARE.
 
 */
 
+#include <Router.hpp>
 #include <Webler.hpp>
-#include <chrono>
-#include <iostream>
-#include <Windows.h>
-
 
 namespace Webler
 {
 
-	Server::Server()
-	{
-	}
-
-	Server::~Server()
-	{
-	}
-
-	void Server::Listen(const unsigned short p_Port)
+	Router::Router(Server * p_Server)
 	{
 
 	}
 
-	void Server::Mute(const unsigned short p_Port)
+	Router::~Router()
 	{
 
 	}
 
-	int Server::Stop()
+	void Router::Get(const std::string & p_Route, CallbackFunction p_Callback)
 	{
-		if (m_Started.Get() == false)
-		{
-			return 0;
-		}
-
-		m_ExitSemaphore.Notify();
-		return 0;
-	}
-
-	int Server::Start(int argc, char ** argv)
-	{
-		// Call user defined setup function.
-		Router router(this);
-		Setup(router);
-
-		// Flag the server as running and wait for it to exit.
-		m_Started.Set(true);
-		m_ExitSemaphore.Wait();
-		return 0;
+		// Do nothing
 	}
 
 }
