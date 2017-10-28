@@ -2,9 +2,7 @@
 obj
 lib
 bin
-temp
-/doc/*
-!/doc/Doxyfile
+doc
 
 # Build
 *.exp
