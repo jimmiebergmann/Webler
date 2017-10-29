@@ -146,6 +146,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\include\Connector.hpp" />
     <ClInclude Include="..\..\..\include\Daemon.hpp" />
+    <ClInclude Include="..\..\..\include\Http.hpp" />
     <ClInclude Include="..\..\..\include\Json.hpp" />
     <ClInclude Include="..\..\..\include\Request.hpp" />
     <ClInclude Include="..\..\..\include\Response.hpp" />

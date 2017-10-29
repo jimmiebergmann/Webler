@@ -42,7 +42,11 @@ namespace Webler
 
 	void Router::Get(const std::string & p_Route, CallbackFunction p_Callback)
 	{
-		// Do nothing
+		
+	}
+
+	void Router::Post(const std::string & p_Route, CallbackFunction p_Callback)
+	{
 	}
 
 }

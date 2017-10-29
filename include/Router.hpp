@@ -59,6 +59,17 @@ namespace Webler
 		*/
 		void Get(const std::string & p_Route, CallbackFunction p_Callback);
 
+		/**
+		* \breif Route POST request
+		*
+		* \param[in]	p_Route	Route to given callback function.
+		*						Specify wildcard arguments in curly brackets.
+		*						Example: /customer/{name}
+		* \param[in]	p_Callback Callback function for request.
+		*
+		*/
+		void Post(const std::string & p_Route, CallbackFunction p_Callback);
+
 	private:
 
 		Router(Server * p_Server);

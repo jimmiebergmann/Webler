@@ -43,10 +43,12 @@ namespace Webler
 
 		void SetRouteParameter(const std::string p_Parameter, const std::string p_Value);
 		const std::string & GetRouteParameter(const std::string p_Parameter) const;
+		const std::string & GetHeaderField(const std::string p_Field) const;
 
 	private:
 
 		std::map<std::string, std::string> m_RouteParamters;
+		std::map<std::string, std::string> m_HeaderFields;
 
 	};
 

@@ -36,7 +36,7 @@ namespace Webler
 
 	Server::Server()
 	{
-		std::cout << __TIMESTAMP__ << std::endl;
+		
 	}
 
 	Server::~Server()
@@ -61,6 +61,11 @@ namespace Webler
 
 		Connector * pConnector = new Connector(this, p_Port);
 		m_Connectors.insert(pConnector);
+	}
+
+	void Server::RequestError(const std::string & p_Resource, Request & p_Request, Response & p_Response)
+	{
+		p_Response << "Error - " << p_Response.GetCode();
 	}
 
 	void Server::Mute(const unsigned short p_Port)
@@ -92,21 +97,35 @@ namespace Webler
 		return 0;
 	}
 
+
+	Server::HttpParser::HttpParser() :
+		m_State(ParseRequestLine)
+	{
+
+	}
+
+	Http::eCode Server::HttpParser::AppendData(const char * p_pData, const unsigned int p_DataSize)
+	{
+		return Http::Continue;
+	}
+
+
 	int Server::Start(int argc, char ** argv)
 	{
+		// Get program path
+		m_ProgramPath = argv[0];
+
 		// Daemon launch
 		if (m_Type == DaemonType)
 		{
+			//Router router(this);
+			//Route(router);
 			m_Started.Set(true);
 			return RunDaemon(argc, argv);
 		}
 
-		// Get program path
-		m_ProgramPath = argv[0];
-
-		// Call user defined setup function.
-		Router router(this);
-		Route(router);
+		// Host laungth
+		Host();
 
 		// Flag the server as running and wait for it to exit.
 		m_Started.Set(true);
@@ -132,31 +151,46 @@ namespace Webler
 			return 0;
 		}
 
-		// Use the handle here..
-		std::cout << "Daemon: Can now use the socket handle: " << socketHandle << std::endl;
+		// Start the receive data
+		std::cout << "Daemon: Receiving data: " << socketHandle << std::endl;
 		
-		char buffer[1024+1];
+		/*HttpParser httpParser;
+		const unsigned int bufferSize = 16384;
+		static char buffer[bufferSize];
 		int recvSize = 0;
-		if ((recvSize = recv(socketHandle, buffer, 1024, 0)) <= 0)
+		Http::eCode code = Http::NoCode;
+
+		while (1)
 		{
-			std::cout << "Daemon: Failed to receive data." << GetLastError() << std::endl;
-			return 0;
-		}
+			if ((recvSize = recv(socketHandle, buffer, 1024, 0)) <= 0)
+			{
+				std::cout << "Daemon: recv() failed" << GetLastError() << std::endl;
+				return 0;
+			}
 
-		buffer[recvSize] = 0;
+			code = httpParser.AppendData(buffer, recvSize);
 
-		std::cout << "Daemon Recv data:" << std::endl;
-		std::cout << buffer << std::endl;
+			// Is the request fully parsed?
+			if (code == Http::Ok)
+			{
+				break;
+			}
+			// Do we need more data?
+			else if (code == Http::Continue)
+			{
+				continue;
+			}
+			// Parse error
+			else
+			{
+				std::cout << "Daemon: Parse error: " << code << std::endl;
+				return 0;
+			}
+		}*/
 
+		// The http request is now parsed.
+		// Route the resource
 
-		if (send(socketHandle, "test", 4, 0) != 4)
-		{
-			std::cout << "Daemon: Failed to send data!" << std::endl;
-		}
-
-		std::cout << "Daemon: Sent data." << std::endl;
-
-		Sleep(30 * 1000);
 		
 		return 0;
 	}

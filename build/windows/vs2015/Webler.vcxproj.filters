@@ -29,6 +29,7 @@
     <ClInclude Include="..\..\..\include\Router.hpp" />
     <ClInclude Include="..\..\..\include\Connector.hpp" />
     <ClInclude Include="..\..\..\include\Daemon.hpp" />
+    <ClInclude Include="..\..\..\include\Http.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Utility">

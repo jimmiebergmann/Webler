@@ -32,6 +32,7 @@ SOFTWARE.
 #include <Utility\Semaphore.hpp>
 #include <Utility\ThreadValue.hpp>
 #include <Connector.hpp>
+#include <Http.hpp>
 #include <exception>
 #include <thread>
 #include <set>
@@ -80,10 +81,26 @@ namespace Webler
 		* \breif Application defined function.
 		*		 Called once by the Webler framework at server startup.
 		*
+		*/
+		virtual void Host() = 0;
+
+		/**
+		* \breif Application defined function.
+		*		 Called once by the Webler framework at daemon start.
+		*
 		* \param p_Router Request router.
 		*
 		*/
 		virtual void Route(Router & p_Router) = 0;
+
+		/**
+		* \breif Application defined function.
+		*		 Called once by the Webler framework at server startup.
+		*
+		* \param p_Router Request router.
+		*
+		*/
+		virtual void RequestError(const std::string & p_Resource, Request & p_Request, Response & p_Response);
 
 		/**
 		* \breif Start listening on given port.
@@ -122,6 +139,29 @@ namespace Webler
 		template <typename T> friend static int Boot(int argc, char ** argv, Server * p_pWeblerClass);
 
 	private:
+
+		// Http class
+		class HttpParser
+		{
+
+		public:
+
+			HttpParser();
+
+			Http::eCode AppendData(const char * p_pData, const unsigned int p_DataSize);
+
+		private:
+
+			enum eState
+			{
+				ParseRequestLine,
+				ParseHeader,
+				ParseBody
+			};
+
+			eState m_State;
+
+		};
 
 		enum eType
 		{

@@ -24,35 +24,12 @@ SOFTWARE.
 
 */
 
-#pragma once
 
-#include <string>
 #include <Http.hpp>
 
 namespace Webler
 {
 
-	class Response
-	{
 
-	public:
-
-		Response(const Http::eCode p_Code = Http::NoCode);
-		~Response();
-
-		Http::eCode GetCode() const;
-
-		void SetCode(const Http::eCode p_Code);
-
-		Response & operator << (const std::string & p_String);
-		Response & operator << (const int & p_Integer);
-
-
-	private:
-
-		Http::eCode		m_Code;
-		std::string		m_Response;
-
-	};
 
 }

@@ -29,4 +29,15 @@ namespace Webler
 		return "";
 	}
 
+	const std::string & Request::GetHeaderField(const std::string p_Field) const
+	{
+		auto it = m_HeaderFields.find(p_Field);
+		if (it != m_HeaderFields.end())
+		{
+			return it->second;
+		}
+
+		return "";
+	}
+
 }

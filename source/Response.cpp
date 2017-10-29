@@ -28,8 +28,10 @@ SOFTWARE.
 
 namespace Webler
 {
+	static char g_TempBuffer32[32];
 
-	Response::Response()
+	Response::Response(const Http::eCode p_Code) :
+		m_Code(p_Code)
 	{
 
 	}
@@ -39,9 +41,26 @@ namespace Webler
 
 	}
 
+	Http::eCode Response::GetCode() const
+	{
+		return m_Code;
+	}
+
+	void Response::SetCode(const Http::eCode p_Code)
+	{
+		m_Code = p_Code;
+	}
+
 	Response & Response::operator << (const std::string & p_String)
 	{
 		m_Response += p_String;
+		return  *this;
+	}
+
+	Response & Response::operator << (const int & p_Integer)
+	{
+		_itoa_s(p_Integer, g_TempBuffer32, 10);
+		m_Response += g_TempBuffer32;
 		return  *this;
 	}
 
