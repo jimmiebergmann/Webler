@@ -11,6 +11,11 @@ public:
 		Listen(80);
 	}
 
+	virtual void RequestError(Webler::Request & req, Webler::Response & resp)
+	{
+		resp << "An error occured: " << resp.GetCode();
+	}
+
 	virtual void Route(Webler::Router & p_Router)
 	{
 		p_Router.Get("/Customer/{name}", [](Webler::Request & req, Webler::Response & resp)
@@ -20,7 +25,7 @@ public:
 				resp << "Jimmie loves cats!";
 			}
 
-			resp << "Unkown name, try \"jimmie\"";
+			resp << "Unkown name, try \"jimmie\".";
 		});
 
 		p_Router.Post("/Customer/{name}", [](Webler::Request & req, Webler::Response & resp)

@@ -8,7 +8,52 @@ Easy to use c++11 web server framework with core features such as routing and js
 
 ## Example
 ```sh
-Not yet available.
+#include <Webler.hpp>
+#include <iostream>
+
+class Server : public Webler::Server
+{
+
+public:
+
+	virtual void Host()
+	{
+		Listen(80);
+	}
+
+	virtual void RequestError(Webler::Request & req, Webler::Response & resp)
+	{
+		resp << "An error occured: " << resp.GetCode();
+	}
+
+	virtual void Route(Webler::Router & p_Router)
+	{
+		p_Router.Get("/Customer/{name}", [](Webler::Request & req, Webler::Response & resp)
+		{
+			if (req.GetRouteParameter("name") == "jimmie")
+			{
+				resp << "Jimmie loves cats!";
+				return;
+			}
+
+			resp << "Unkown name, try \"jimmie\".";
+		});
+
+		p_Router.Post("/Customer/{name}", [](Webler::Request & req, Webler::Response & resp)
+		{
+			const std::string & name = req.GetRouteParameter("name");
+			resp << "Created customer \"" << name << "\"";
+			const std::string & loves = req.GetHeaderField("loves");
+			if (loves.length())
+			{
+				resp << ", who loves " << loves << ".";
+			}
+		});
+	}
+	
+};
+
+WeblerStart(Server);
 ```
 
 ## License

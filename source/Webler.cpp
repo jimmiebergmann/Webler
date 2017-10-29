@@ -63,7 +63,7 @@ namespace Webler
 		m_Connectors.insert(pConnector);
 	}
 
-	void Server::RequestError(const std::string & p_Resource, Request & p_Request, Response & p_Response)
+	void Server::RequestError(Request & p_Request, Response & p_Response)
 	{
 		p_Response << "Error - " << p_Response.GetCode();
 	}

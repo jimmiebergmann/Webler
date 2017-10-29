@@ -100,7 +100,7 @@ namespace Webler
 		* \param p_Router Request router.
 		*
 		*/
-		virtual void RequestError(const std::string & p_Resource, Request & p_Request, Response & p_Response);
+		virtual void RequestError(Request & p_Request, Response & p_Response);
 
 		/**
 		* \breif Start listening on given port.
