@@ -24,49 +24,19 @@ SOFTWARE.
 
 */
 
-#pragma once
-
-#include <mutex>
-
-namespace Webler
+template <typename T>
+int Webler::Boot(int argc, char ** argv, Webler::Server * p_pWeblerClass)
 {
-
-	namespace Utility
+	if (std::is_base_of<Webler::Server, T>::value == false)
 	{
-
-		template<typename T>
-		class ThreadValue
-		{
-
-		public:
-
-			ThreadValue()
-			{
-			}
-
-			ThreadValue(const T & p_Value) :
-				Value(p_Value)
-			{
-			}
-
-			void Set(const T & p_Value)
-			{
-				Mutex.lock();
-				Value = p_Value;
-				Mutex.unlock();
-			}
-
-			const T Get()
-			{
-				std::lock_guard<std::mutex> lock(Mutex);
-				return Value;
-			}
-
-			std::mutex	Mutex;
-			T			Value;
-
-		};
-
+		throw std::string("Webler::Server is not base class of application class.");
+	}
+			
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData))
+	{
+		throw std::string("Failed to initialize winsock.");
 	}
 
+	return p_pWeblerClass->Start(argc, argv);
 }

@@ -26,47 +26,39 @@ SOFTWARE.
 
 #pragma once
 
-#include <mutex>
+#include <Utility/Semaphore.hpp>
+#include <Utility/ThreadValue.hpp>
+#include <thread>
+#include <set>
+#include <Socket/Handle.hpp>
 
 namespace Webler
 {
 
-	namespace Utility
+	class Server;
+
+	class Connector
 	{
 
-		template<typename T>
-		class ThreadValue
-		{
+	public:
 
-		public:
+		Connector(Server * p_pServer, unsigned short p_Port);
 
-			ThreadValue()
-			{
-			}
+		~Connector();
 
-			ThreadValue(const T & p_Value) :
-				Value(p_Value)
-			{
-			}
+		unsigned short GetPort();
 
-			void Set(const T & p_Value)
-			{
-				Mutex.lock();
-				Value = p_Value;
-				Mutex.unlock();
-			}
+	private:
 
-			const T Get()
-			{
-				std::lock_guard<std::mutex> lock(Mutex);
-				return Value;
-			}
+		typedef std::set<std::thread *> ThreadSet;
 
-			std::mutex	Mutex;
-			T			Value;
+		Server *									m_pServer;
+		Socket::Handle								m_Handle;
+		std::thread									m_Thread;
+		ThreadSet									m_DaemonThreads;
+		Utility::ThreadValue<bool>					m_Running;
+		unsigned short								m_Port;
 
-		};
-
-	}
+	};
 
 }

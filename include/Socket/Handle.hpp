@@ -26,46 +26,31 @@ SOFTWARE.
 
 #pragma once
 
-#include <mutex>
+#include <winsock2.h>
+#undef SetPort
+
+/*
+// Linux
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+*/
 
 namespace Webler
 {
 
-	namespace Utility
+	namespace Socket
 	{
 
-		template<typename T>
-		class ThreadValue
-		{
+		// Windows
+		typedef SOCKET Handle;
 
-		public:
-
-			ThreadValue()
-			{
-			}
-
-			ThreadValue(const T & p_Value) :
-				Value(p_Value)
-			{
-			}
-
-			void Set(const T & p_Value)
-			{
-				Mutex.lock();
-				Value = p_Value;
-				Mutex.unlock();
-			}
-
-			const T Get()
-			{
-				std::lock_guard<std::mutex> lock(Mutex);
-				return Value;
-			}
-
-			std::mutex	Mutex;
-			T			Value;
-
-		};
+		// Linux
+		//typedef unsigned int SocketHandle;
 
 	}
 

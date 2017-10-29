@@ -6,7 +6,7 @@ class Server : public Webler::Server
 
 public:
 
-	virtual void Setup(Webler::Router & p_Router)
+	virtual void Route(Webler::Router & p_Router)
 	{
 		p_Router.Get("/Customer/{name}", [](Webler::Request & req, Webler::Response & resp)
 		{

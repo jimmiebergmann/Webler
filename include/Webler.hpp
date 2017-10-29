@@ -31,11 +31,14 @@ SOFTWARE.
 #include <Request.hpp>
 #include <Utility\Semaphore.hpp>
 #include <Utility\ThreadValue.hpp>
+#include <Connector.hpp>
 #include <exception>
 #include <thread>
 #include <set>
 #include <type_traits>
-#include <signal.h>
+//#include <signal.h>
+#include <csignal>
+#include <winsock2.h>
 
 /**
 * \breif Forward declarations.
@@ -80,7 +83,7 @@ namespace Webler
 		* \param p_Router Request router.
 		*
 		*/
-		virtual void Setup(Router & p_Router) = 0;
+		virtual void Route(Router & p_Router) = 0;
 
 		/**
 		* \breif Start listening on given port.
@@ -112,27 +115,45 @@ namespace Webler
 		* \breif Friend classes and functions
 		*
 		*/
+		friend class Connector;
 		friend class Router;							//< Friend router class.
 		friend int ::main(int argc, char ** argv);		//< Friend main function in order to call Start from main.
 		friend void ::WeblerSignalHandler(int signal);	//< Friend signlar handler function.
+		template <typename T> friend static int Boot(int argc, char ** argv, Server * p_pWeblerClass);
 
 	private:
 
+		enum eType
+		{
+			HostType,
+			DaemonType
+		};
+
 		/**
-		* \breif Function executed by main(argc, argv), starts the Webler server.
+		* \breif Functions executed by main(argc, argv), starts the Webler server.
 		*
 		*/
+		template <typename T> 
+		static int Boot(int argc, char ** argv, Server * p_pWeblerClass);
+
 		int Start(int argc, char ** argv);
+		int RunDaemon(int argc, char ** argv);
+		const std::string & GetProgramPath() const;
+
 
 		// Private typedefs
-		typedef std::set<std::thread *> ThreadSet;
+		typedef std::set<Connector *> ConnectorSet;
 
 		// Private variables
-		ThreadSet					m_ListenThreads;
+		eType						m_Type;
+		ConnectorSet				m_Connectors;
 		Utility::Semaphore			m_ExitSemaphore;
 		Utility::ThreadValue<bool>	m_Started;
+		std::string					m_ProgramPath;
 
 	};
+
+	#include <Webler.inl>
 
 }
 
@@ -143,6 +164,25 @@ namespace Webler
 *
 */
 #define WeblerStart(WeblerServerClass)\
+	static WeblerServerClass private_weblerServerClass;\
+	\
+	void private_WeblerSignalHandler(int signal)\
+	{\
+		private_weblerServerClass.Stop();\
+	}\
+	\
+	int main(int argc, char ** argv)\
+	{\
+		if(argc == 3 && strcmp("-daemon", argv[1]) == 0) {private_weblerServerClass.m_Type = Webler::Server::eType::DaemonType;}\
+		else {private_weblerServerClass.m_Type = Webler::Server::eType::HostType;}\
+		\
+		std::signal(SIGABRT, private_WeblerSignalHandler);\
+		std::signal(SIGTERM, private_WeblerSignalHandler);\
+		std::signal(SIGBREAK, private_WeblerSignalHandler);\
+		return Webler::Boot<WeblerServerClass>(argc, argv, &private_weblerServerClass);\
+	}
+
+/*#define WeblerStart(WeblerServerClass)\
 	static WeblerServerClass weblerServerClass;\
 	\
 	void WeblerSignalHandler(int signal)\
@@ -157,8 +197,14 @@ namespace Webler
 			throw std::string("Webler::Server is not base class of application class.");\
 		}\
 		\
+		WSADATA wsaData;\
+		if (WSAStartup(MAKEWORD(2, 2), &wsaData))\
+		{\
+			throw std::string("Failed to initialize winsock."); \
+		}\
+		\
 		signal(SIGABRT, WeblerSignalHandler);\
 		signal(SIGTERM, WeblerSignalHandler);\
 		signal(SIGBREAK, WeblerSignalHandler);\
 		return weblerServerClass.Start(argc, argv);\
-	}
+	}*/

@@ -26,47 +26,45 @@ SOFTWARE.
 
 #pragma once
 
-#include <mutex>
+#include <Socket/Handle.hpp>
+#include <Utility\ThreadValue.hpp>
+#include <string>
 
 namespace Webler
 {
 
-	namespace Utility
+	
+	class Daemon
 	{
 
-		template<typename T>
-		class ThreadValue
+	public:
+
+		enum eType
 		{
-
-		public:
-
-			ThreadValue()
-			{
-			}
-
-			ThreadValue(const T & p_Value) :
-				Value(p_Value)
-			{
-			}
-
-			void Set(const T & p_Value)
-			{
-				Mutex.lock();
-				Value = p_Value;
-				Mutex.unlock();
-			}
-
-			const T Get()
-			{
-				std::lock_guard<std::mutex> lock(Mutex);
-				return Value;
-			}
-
-			std::mutex	Mutex;
-			T			Value;
-
+			HostType,
+			DaemonType
 		};
 
-	}
+		Daemon(const eType p_Type);
+
+		~Daemon();
+
+		bool Create(const std::string & p_Program, Socket::Handle & p_SocketHandle);
+
+		bool Load(int p_Argc, char ** p_ppArgv);
+
+		bool Join();
+
+		Socket::Handle & GetSocketHandle();
+
+	private:
+
+		static unsigned int GetUniqueIdentifier();
+
+		eType										m_Type;
+		Socket::Handle								m_SocketHandle;
+		static Utility::ThreadValue<unsigned int>	m_Identifier;
+
+	};
 
 }

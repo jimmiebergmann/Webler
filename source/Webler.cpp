@@ -25,6 +25,7 @@ SOFTWARE.
 */
 
 #include <Webler.hpp>
+#include <Daemon.hpp>
 #include <chrono>
 #include <iostream>
 #include <Windows.h>
@@ -35,6 +36,7 @@ namespace Webler
 
 	Server::Server()
 	{
+		std::cout << __TIMESTAMP__ << std::endl;
 	}
 
 	Server::~Server()
@@ -43,12 +45,40 @@ namespace Webler
 
 	void Server::Listen(const unsigned short p_Port)
 	{
+		if (m_Type != HostType)
+		{
+			return;
+		}
 
+		// Check if we already are listening on this port
+		for (auto it = m_Connectors.begin(); it != m_Connectors.end(); it++)
+		{
+			if ((*it)->GetPort() == p_Port)
+			{
+				return;
+			}
+		}
+
+		Connector * pConnector = new Connector(this, p_Port);
+		m_Connectors.insert(pConnector);
 	}
 
 	void Server::Mute(const unsigned short p_Port)
 	{
+		if (m_Type != HostType)
+		{
+			return;
+		}
 
+		for (auto it = m_Connectors.begin(); it != m_Connectors.end(); it++)
+		{
+			if ((*it)->GetPort() == p_Port)
+			{
+				delete (*it);
+				m_Connectors.erase(it);
+				return;
+			}
+		}
 	}
 
 	int Server::Stop()
@@ -64,14 +94,61 @@ namespace Webler
 
 	int Server::Start(int argc, char ** argv)
 	{
+		// Daemon launch
+		if (m_Type == DaemonType)
+		{
+			m_Started.Set(true);
+			return RunDaemon(argc, argv);
+		}
+
+		// Get program path
+		m_ProgramPath = argv[0];
+
 		// Call user defined setup function.
 		Router router(this);
-		Setup(router);
+		Route(router);
 
 		// Flag the server as running and wait for it to exit.
 		m_Started.Set(true);
 		m_ExitSemaphore.Wait();
 		return 0;
+	}
+
+	int Server::RunDaemon(int argc, char ** argv)
+	{
+		std::cout << "Daemon: Running." << std::endl;
+
+		Daemon daemon(Daemon::DaemonType);
+		if(daemon.Load(argc, argv) == false)
+		{
+			std::cout << "Daemon: Failed to load daemon." << std::endl;
+			return 0;
+		}
+
+		Socket::Handle socketHandle = daemon.GetSocketHandle();
+		if (socketHandle == 0)
+		{
+			std::cout << "Daemon: Invalid socket handle." << std::endl;
+			return 0;
+		}
+
+		// Use the handle here..
+		std::cout << "Daemon: Can now use the socket handle: " << socketHandle << std::endl;
+		
+		if (send(socketHandle, "test", 4, 0) != 4)
+		{
+			std::cout << "Daemon: Failed to send data!" << std::endl;
+		}
+
+		std::cout << "Daemon: Sent data." << std::endl;
+
+		
+		return 0;
+	}
+
+	const std::string & Server::GetProgramPath() const
+	{
+		return m_ProgramPath;
 	}
 
 }
