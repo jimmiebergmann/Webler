@@ -28,8 +28,10 @@ SOFTWARE.
 
 #include <Utility/Semaphore.hpp>
 #include <Utility/ThreadValue.hpp>
+#include <Daemon.hpp>
 #include <thread>
-#include <set>
+#include <mutex>
+#include <list>
 #include <Socket/Handle.hpp>
 
 namespace Webler
@@ -50,12 +52,12 @@ namespace Webler
 
 	private:
 
-		typedef std::set<std::thread *> ThreadSet;
+		typedef std::list<Daemon *> DaemonList;
 
 		Server *									m_pServer;
 		Socket::Handle								m_Handle;
 		std::thread									m_Thread;
-		ThreadSet									m_DaemonThreads;
+		DaemonList									m_Daemons;
 		Utility::ThreadValue<bool>					m_Running;
 		unsigned short								m_Port;
 

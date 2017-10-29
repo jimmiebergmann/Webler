@@ -34,9 +34,15 @@ namespace Webler
 	Utility::ThreadValue<unsigned int>	Daemon::m_Identifier(0);
 
 	Daemon::Daemon(const eType p_Type) :
-		m_Type(p_Type)
+		m_Type(p_Type),
+		m_ProcessHandle(0),
+		m_pHostData(nullptr)
 	{
-
+		if (m_Type == HostType)
+		{
+			m_pHostData = new HostData;
+			m_pHostData->Finished.Value = false;
+		}
 	}
 
 	Daemon::~Daemon()
@@ -50,128 +56,135 @@ namespace Webler
 		{
 			return false;
 		}
-		
-		BOOL ret = 0;
-		HANDLE hPipe;
-		DWORD dwBytes;
-		PROCESS_INFORMATION piProc;
-		STARTUPINFO siStartInfo;
-		WSAPROTOCOL_INFO protInfo;
-		OVERLAPPED ol = {0,0,0,0,NULL};
 
-
-		DWORD processId = GetCurrentProcessId();
-		std::stringstream ss;
-		ss << processId << "_" << GetUniqueIdentifier();
-		std::string pipeName = "\\\\.\\pipe\\Webler_shared_mem_" + ss.str();
- 
-		// I create a named pipe for communication with the spawned process
-		const DWORD BUFSIZE = 256;
-		const DWORD PIPE_TIMEOUT_CONNECT = 3000;
-
-		hPipe = CreateNamedPipe(
-			pipeName.c_str(),				// pipe name
-			PIPE_ACCESS_DUPLEX |			// read/write access
-			FILE_FLAG_OVERLAPPED,
-			PIPE_TYPE_BYTE |				// message type pipe
-			PIPE_READMODE_BYTE |			// message-read mode
-			PIPE_WAIT,						// blocking mode
-			PIPE_UNLIMITED_INSTANCES,		// max. instances
-			BUFSIZE,						// output buffer size
-			BUFSIZE,						// input buffer size
-			PIPE_TIMEOUT_CONNECT,			// client time-out
-			NULL);							// default security attribute
-
-		if (hPipe == INVALID_HANDLE_VALUE)
+		m_pHostData->Thread = std::thread([this, p_Program, p_SocketHandle]()
 		{
-			std::cout << "Failed to create named pipe. " << GetLastError() << std::endl;
-			return false;
-		}
+			BOOL ret = 0;
+			HANDLE hPipe;
+			DWORD dwBytes;
+			PROCESS_INFORMATION piProc;
+			STARTUPINFO siStartInfo;
+			WSAPROTOCOL_INFO protInfo;
+			OVERLAPPED ol = { 0,0,0,0,NULL };
 
-		// I create a new process(daemon)
-		GetStartupInfo(&siStartInfo);
-		const std::string programArgs = p_Program + " -daemon " + pipeName;
+			DWORD processId = GetCurrentProcessId();
+			std::stringstream ss;
+			ss << processId << "_" << GetUniqueIdentifier();
+			std::string pipeName = "\\\\.\\pipe\\Webler_shared_mem_" + ss.str();
 
-		ret = CreateProcess(p_Program.c_str(), const_cast<LPSTR>(programArgs.c_str()),
-			NULL, NULL, // security attributes process/thread
-			TRUE,       // inherit handle
-			0, // fdwCreate
-			NULL, // lpvEnvironment 
-			".", // lpszCurDir
-			&siStartInfo, // lpsiStartInfo 
-			&piProc);
+			// I create a named pipe for communication with the spawned process
+			const DWORD BUFSIZE = 256;
+			const DWORD PIPE_TIMEOUT_CONNECT = 3000;
 
-		if (ret == 0)
-		{
-			std::cout << "Failed to create daemon process. " << GetLastError() << std::endl;
-			return false;
-		}
+			hPipe = CreateNamedPipe(
+				pipeName.c_str(),				// pipe name
+				PIPE_ACCESS_DUPLEX |			// read/write access
+				FILE_FLAG_OVERLAPPED,
+				PIPE_TYPE_BYTE |				// message type pipe
+				PIPE_READMODE_BYTE |			// message-read mode
+				PIPE_WAIT,						// blocking mode
+				PIPE_UNLIMITED_INSTANCES,		// max. instances
+				BUFSIZE,						// output buffer size
+				BUFSIZE,						// input buffer size
+				PIPE_TIMEOUT_CONNECT,			// client time-out
+				NULL);							// default security attribute
 
-		std::cout << "Created daemon: " << piProc.dwProcessId << std::endl;
-
-		// I duplicate the socket
-		/*ret = WSADuplicateSocket(p_SocketHandle, piProc.dwProcessId, &protInfo);
-		if (ret == SOCKET_ERROR)
-		{
-			std::cout << "Failed to duplicate socket. " << GetLastError() << std::endl;
-			return false;
-		}*/
-
-		ol.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-		// I connect to the named pipe...
-		ret = ConnectNamedPipe(hPipe, &ol);
-		if (ret == 0) {
-			switch (GetLastError())
+			if (hPipe == INVALID_HANDLE_VALUE)
 			{
-
-			case ERROR_PIPE_CONNECTED:
-				std::cout << "ERROR_PIPE_CONNECTED" << std::endl;
-				ret = TRUE;
-				break;
-
-			case ERROR_IO_PENDING:
-				std::cout << "ERROR_IO_PENDING" << std::endl;
-				if (WaitForSingleObject(ol.hEvent, PIPE_TIMEOUT_CONNECT) == WAIT_OBJECT_0)
-				{
-					std::cout << "WAit.. " << PIPE_TIMEOUT_CONNECT << std::endl;
-					DWORD dwIgnore;
-					ret = GetOverlappedResult(hPipe, &ol, &dwIgnore, FALSE);
-				}
-				else
-				{
-					std::cout << "Cancel IO" << std::endl;
-					CancelIo(hPipe);
-				}
-				break;
+				std::cout << "Failed to create named pipe. " << GetLastError() << std::endl;
+				return;
 			}
-		}
 
-		CloseHandle(ol.hEvent);
+			// I create a new process(daemon)
+			GetStartupInfo(&siStartInfo);
+			const std::string programArgs = p_Program + " -daemon " + pipeName;
 
-		if (ret == 0)
-		{
-			std::cout << "Failed to connect named pipe. : " << pipeName << " - " << GetLastError() << std::endl;
-			return false;
-		}
+			ret = CreateProcess(p_Program.c_str(), const_cast<LPSTR>(programArgs.c_str()),
+				NULL, NULL, // security attributes process/thread
+				TRUE,       // inherit handle
+				0, // fdwCreate
+				NULL, // lpvEnvironment 
+				".", // lpszCurDir
+				&siStartInfo, // lpsiStartInfo 
+				&piProc);
+
+			if (ret == 0)
+			{
+				std::cout << "Failed to create daemon process. " << GetLastError() << std::endl;
+				return;
+			}
+
+			m_ProcessHandle = piProc.hProcess;
+
+			std::cout << "Created daemon: " << piProc.dwProcessId << std::endl;
+
+			// I duplicate the socket
+			/*ret = WSADuplicateSocket(p_SocketHandle, piProc.dwProcessId, &protInfo);
+			if (ret == SOCKET_ERROR)
+			{
+				std::cout << "Failed to duplicate socket. " << GetLastError() << std::endl;
+				return false;
+			}*/
+
+			ol.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+			// I connect to the named pipe...
+			ret = ConnectNamedPipe(hPipe, &ol);
+			if (ret == 0) {
+				switch (GetLastError())
+				{
+
+				case ERROR_PIPE_CONNECTED:
+					std::cout << "ERROR_PIPE_CONNECTED" << std::endl;
+					ret = TRUE;
+					break;
+
+				case ERROR_IO_PENDING:
+					std::cout << "ERROR_IO_PENDING" << std::endl;
+					if (WaitForSingleObject(ol.hEvent, PIPE_TIMEOUT_CONNECT) == WAIT_OBJECT_0)
+					{
+						std::cout << "WAit.. " << PIPE_TIMEOUT_CONNECT << std::endl;
+						DWORD dwIgnore;
+						ret = GetOverlappedResult(hPipe, &ol, &dwIgnore, FALSE);
+					}
+					else
+					{
+						std::cout << "Cancel IO" << std::endl;
+						CancelIo(hPipe);
+					}
+					break;
+				}
+			}
+
+			CloseHandle(ol.hEvent);
+
+			if (ret == 0)
+			{
+				std::cout << "Failed to connect named pipe. : " << pipeName << " - " << GetLastError() << std::endl;
+				return;
+			}
 
 
-		// I write the socket descriptor to the named pipe 
-		if (WriteFile(hPipe, &p_SocketHandle, sizeof(p_SocketHandle), &dwBytes, NULL) == 0)
-		{
-			std::cout << "Failed to write socket handle to shared memory. " << GetLastError() << std::endl;
-			return false;
-		}
+			// I write the socket descriptor to the named pipe 
+			if (WriteFile(hPipe, &p_SocketHandle, sizeof(p_SocketHandle), &dwBytes, NULL) == 0)
+			{
+				std::cout << "Failed to write socket handle to shared memory. " << GetLastError() << std::endl;
+				return;
+			}
 
-		// I write the protocol information structure to the named pipe
-		/*if (WriteFile(hPipe, &protInfo, sizeof(protInfo), &dwBytes, NULL) == 0)
-		{
-			std::cout << "Failed to write prot info to shared memory. " << GetLastError() << std::endl;
-			return false;
-		}*/
+// I write the protocol information structure to the named pipe
+/*if (WriteFile(hPipe, &protInfo, sizeof(protInfo), &dwBytes, NULL) == 0)
+{
+	std::cout << "Failed to write prot info to shared memory. " << GetLastError() << std::endl;
+	return false;
+}*/
 
-		CloseHandle(hPipe);
+			// Close pipe handle.
+			CloseHandle(hPipe);
 
+			// Mark the daemon as finished.
+			m_pHostData->Finished.Set(true);
+		});
 
 		return true;
 	}
@@ -239,6 +252,7 @@ namespace Webler
 
 		m_SocketHandle = socketHandle;
 
+
 		/*
 		// I read the protocol information structure sent me by the parent process
 
@@ -260,12 +274,35 @@ namespace Webler
 		return true;
 	}
 
+	bool Daemon::Terminate()
+	{
+		if (m_Type != HostType)
+		{
+			return false;
+		}
+
+		TerminateProcess(m_ProcessHandle, 0);
+	}
+
+	bool Daemon::IsFinished()
+	{
+		if (m_pHostData != nullptr)
+		{
+			const bool finished = m_pHostData->Finished.Get();
+			return finished;
+		}
+
+		return false;
+	}
+
 	bool Daemon::Join()
 	{
 		if (m_Type != HostType)
 		{
 			return false;
 		}
+
+		WaitForSingleObject(m_ProcessHandle, INFINITE);
 
 		return true;
 	}

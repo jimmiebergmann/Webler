@@ -135,6 +135,20 @@ namespace Webler
 		// Use the handle here..
 		std::cout << "Daemon: Can now use the socket handle: " << socketHandle << std::endl;
 		
+		char buffer[1024+1];
+		int recvSize = 0;
+		if ((recvSize = recv(socketHandle, buffer, 1024, 0)) <= 0)
+		{
+			std::cout << "Daemon: Failed to receive data." << GetLastError() << std::endl;
+			return 0;
+		}
+
+		buffer[recvSize] = 0;
+
+		std::cout << "Daemon Recv data:" << std::endl;
+		std::cout << buffer << std::endl;
+
+
 		if (send(socketHandle, "test", 4, 0) != 4)
 		{
 			std::cout << "Daemon: Failed to send data!" << std::endl;
@@ -142,6 +156,7 @@ namespace Webler
 
 		std::cout << "Daemon: Sent data." << std::endl;
 
+		Sleep(30 * 1000);
 		
 		return 0;
 	}

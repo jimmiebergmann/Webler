@@ -53,18 +53,29 @@ namespace Webler
 
 		bool Load(int p_Argc, char ** p_ppArgv);
 
+		bool Terminate();
+
+		bool IsFinished();
+
 		bool Join();
 
 		Socket::Handle & GetSocketHandle();
 
 	private:
 
+		struct HostData
+		{
+			std::thread					Thread;
+			Utility::ThreadValue<bool>	Finished;
+		};
+
 		static unsigned int GetUniqueIdentifier();
 
 		eType										m_Type;
 		Socket::Handle								m_SocketHandle;
 		static Utility::ThreadValue<unsigned int>	m_Identifier;
-
+		HANDLE										m_ProcessHandle;
+		HostData *									m_pHostData;
 	};
 
 }

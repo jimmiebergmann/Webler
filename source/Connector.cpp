@@ -24,13 +24,11 @@ SOFTWARE.
 
 */
 
-#include <Webler.hpp>
 #include <Connector.hpp>
-#include <Daemon.hpp>
+#include <Webler.hpp>
 #include <exception>
 #include <string>
 #include <iostream>
-
 #include <stdio.h>
 #include <conio.h>
 #include <tchar.h>
@@ -105,8 +103,21 @@ namespace Webler
 
 				std::cout << "Client connected!" << std::endl;
 
+				// Create a daemon
+				Daemon * pDaemon = new Daemon(Daemon::HostType);
+				if (pDaemon->Create(m_pServer->GetProgramPath(), *pAcceptHandle) == false)
+				{
+					std::cout << "Failed to create daemon!" << std::endl;
+					return;
+				}
+
+				m_Daemons.push_back(pDaemon);
+
+				//ThreadData * pThreadData = new ThreadData;
+				//pThreadData->Finished.Value = false;
+
 				// Create new daemon thread
-				std::thread * pDaemonThread = new std::thread([this, pAcceptHandle]()
+				/*pThreadData->Thread = std::thread([this, pAcceptHandle, pThreadData]()
 				{
 					// Create daemon
 					Daemon daemon(Daemon::HostType);
@@ -122,10 +133,12 @@ namespace Webler
 						std::cout << "Failed to join daemon." << std::endl;
 					}
 
-				});
+					std::cout << "Joined daemon." << std::endl;
 
-				m_DaemonThreads.insert(pDaemonThread);
+					pThreadData->Finished.Set(true);
+				});*/
 
+				//m_DaemonThreads.push_back(pThreadData);
 
 				// Set accept handle to nullptr, will force another allocation in next loop.
 				pAcceptHandle = nullptr;
@@ -138,11 +151,25 @@ namespace Webler
 
 	Connector::~Connector()
 	{
-		closesocket(m_Handle);
+		// Wait for listening thread to stop
 		m_Running.Set(false);
+		closesocket(m_Handle);
 		m_Thread.join();
 
-		// Join daemon threads
+		// Clean up daemon threads
+		for (auto it = m_Daemons.begin(); it != m_Daemons.end(); it++)
+		{
+			// Terminate daemon process if needed.
+			if ((*it)->IsFinished() == false)
+			{
+				(*it)->Terminate();
+			}
+
+			// Join thrread
+			(*it)->Join();
+			
+			delete *it;
+		}
 
 	}
 
