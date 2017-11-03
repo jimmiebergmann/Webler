@@ -26,23 +26,40 @@ SOFTWARE.
 
 #pragma once
 
-#include <string>
-#include <Http.hpp>
-
+/**
+* \breif Webler namespace scope.
+*
+*/
 namespace Webler
 {
-
-	class Response
+	/**
+	* \breif Listener class
+	*
+	*/
+	class Listener
 	{
 
 	public:
 
-		Http::eCode GetCode() const;
+		/**
+		* \breif Start listening on given port.
+		*
+		* \param[in]	p_Port	Port to listening on.
+		*
+		* \see Mute
+		*
+		*/
+		void Listen(const unsigned short p_Port);
 
-		void SetCode(const Http::eCode p_Code);
-
-		Response & operator << (const std::string & p_String);
-		Response & operator << (const int & p_Integer);
+		/**
+		* \breif Stop listening on given port.
+		*
+		* \param[in]	p_Port	Port to stop listening on.
+		*
+		* \see Listen
+		*
+		*/
+		void Mute(const unsigned short p_Port);
 
 
 	private:
@@ -53,30 +70,28 @@ namespace Webler
 		* \breif Default constructor
 		*
 		*/
-		Response();
+		Listener();
 
 		/**
 		* \breif Copy constructor
 		*
 		*/
-		Response(const Response & p_Response);
+		Listener(const Listener & p_Listener);
 
 		/**
 		* \breif Initialization constructor
 		*
 		*/
-		Response(Server * p_Server);
+		Listener(Server * p_Server);
 
 		/**
 		* \breif Destructor
 		*
 		*/
-		~Response();
+		~Listener();
 
 
-
-		Http::eCode		m_Code;
-		std::string		m_Response;
+		void * m_Imp; //< Implementation
 
 	};
 

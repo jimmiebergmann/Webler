@@ -3,16 +3,6 @@
 namespace Webler
 {
 
-	Request::Request()
-	{
-
-	}
-
-	Request::~Request()
-	{
-
-	}
-
 	void Request::SetRouteParameter(const std::string p_Parameter, const std::string p_Value)
 	{
 		m_RouteParamters[p_Parameter] = p_Value;
@@ -38,6 +28,22 @@ namespace Webler
 		}
 
 		return "";
+	}
+
+	Request::Request()
+	{
+	}
+
+	Request::Request(const Request & p_Request)
+	{
+	}
+
+	Request::Request(Server * p_Server)
+	{
+	}
+
+	Request::~Request()
+	{
 	}
 
 }

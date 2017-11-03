@@ -37,15 +37,39 @@ namespace Webler
 
 	public:
 
-		Request();
-		~Request();
-
-
 		void SetRouteParameter(const std::string p_Parameter, const std::string p_Value);
 		const std::string & GetRouteParameter(const std::string p_Parameter) const;
 		const std::string & GetHeaderField(const std::string p_Field) const;
 
 	private:
+
+		class Server; //< Forward declaration
+
+		/**
+		* \breif Default constructor
+		*
+		*/
+		Request();
+
+		/**
+		* \breif Copy constructor
+		*
+		*/
+		Request(const Request & p_Request);
+
+		/**
+		* \breif Initialization constructor
+		*
+		*/
+		Request(Server * p_Server);
+
+		/**
+		* \breif Destructor
+		*
+		*/
+		~Request();
+
+
 
 		std::map<std::string, std::string> m_RouteParamters;
 		std::map<std::string, std::string> m_HeaderFields;

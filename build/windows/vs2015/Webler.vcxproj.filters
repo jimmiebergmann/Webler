@@ -10,7 +10,11 @@
     </ClCompile>
     <ClCompile Include="..\..\..\source\Router.cpp" />
     <ClCompile Include="..\..\..\source\Connector.cpp" />
+    <ClCompile Include="..\..\..\source\Process.cpp" />
     <ClCompile Include="..\..\..\source\Daemon.cpp" />
+    <ClCompile Include="..\..\..\source\Server.cpp" />
+    <ClCompile Include="..\..\..\source\Shared.cpp" />
+    <ClCompile Include="..\..\..\source\Listener.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\Json.hpp" />
@@ -28,8 +32,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\include\Router.hpp" />
     <ClInclude Include="..\..\..\include\Connector.hpp" />
-    <ClInclude Include="..\..\..\include\Daemon.hpp" />
     <ClInclude Include="..\..\..\include\Http.hpp" />
+    <ClInclude Include="..\..\..\include\Process.hpp" />
+    <ClInclude Include="..\..\..\include\Server.hpp" />
+    <ClInclude Include="..\..\..\include\Shared.hpp" />
+    <ClInclude Include="..\..\..\include\Daemon.hpp" />
+    <ClInclude Include="..\..\..\include\Listener.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Utility">

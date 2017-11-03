@@ -30,16 +30,7 @@ namespace Webler
 {
 	static char g_TempBuffer32[32];
 
-	Response::Response(const Http::eCode p_Code) :
-		m_Code(p_Code)
-	{
 
-	}
-
-	Response::~Response()
-	{
-
-	}
 
 	Http::eCode Response::GetCode() const
 	{
@@ -62,6 +53,23 @@ namespace Webler
 		_itoa_s(p_Integer, g_TempBuffer32, 10);
 		m_Response += g_TempBuffer32;
 		return  *this;
+	}
+
+
+	Response::Response()
+	{
+	}
+
+	Response::Response(const Response & p_Response)
+	{
+	}
+
+	Response::Response(Server * p_Server)
+	{
+	}
+
+	Response::~Response()
+	{
 	}
 
 }

@@ -24,60 +24,30 @@ SOFTWARE.
 
 */
 
-#pragma once
+#include <Shared.hpp>
 
-#include <string>
-#include <Http.hpp>
+#define IMP reinterpret_cast<SharedImp*>(this->m_Imp)
 
 namespace Webler
 {
 
-	class Response
+	// Shared implementation
+	// ...
+
+
+	// public shared class
+	Shared::Shared()
 	{
 
-	public:
+	}
 
-		Http::eCode GetCode() const;
+	Shared::~Shared()
+	{
+	}
 
-		void SetCode(const Http::eCode p_Code);
-
-		Response & operator << (const std::string & p_String);
-		Response & operator << (const int & p_Integer);
-
-
-	private:
-
-		class Server; //< Forward declaration
-
-		/**
-		* \breif Default constructor
-		*
-		*/
-		Response();
-
-		/**
-		* \breif Copy constructor
-		*
-		*/
-		Response(const Response & p_Response);
-
-		/**
-		* \breif Initialization constructor
-		*
-		*/
-		Response(Server * p_Server);
-
-		/**
-		* \breif Destructor
-		*
-		*/
-		~Response();
-
-
-
-		Http::eCode		m_Code;
-		std::string		m_Response;
-
-	};
+	void Shared::RequestError(Request & p_Request, Response & p_Response)
+	{
+		p_Response << "Error - " << p_Response.GetCode();
+	}
 
 }

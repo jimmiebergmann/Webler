@@ -26,56 +26,73 @@ SOFTWARE.
 
 #pragma once
 
-#include <Socket/Handle.hpp>
-#include <Utility\ThreadValue.hpp>
-#include <string>
+#include <Router.hpp>
 
+
+// Forward declarations
+int main(int argc, char ** argv);
+
+
+/**
+* \breif Webler namespace scope.
+*
+*/
 namespace Webler
 {
 
-	
+	class Shared; //< Shared forward declaration.
+
+
+	/**
+	* \breif Daemon class.
+	*
+	*/
 	class Daemon
 	{
 
 	public:
 
-		enum eType
-		{
-			HostType,
-			DaemonType
-		};
+		/**
+		* \breif Default constructor
+		*
+		*/
+		Daemon();
 
-		Daemon(const eType p_Type);
+		/**
+		* \breif Destructor
+		*
+		*/
+		virtual ~Daemon();
 
-		~Daemon();
+		/**
+		* \breif Application defined function.
+		*		 Called once by the Webler framework at daemon start.
+		*
+		* \param p_Router Request router.
+		*
+		*/
+		virtual void Start(Webler::Router & p_Router) = 0;
 
-		bool Create(const std::string & p_Program, Socket::Handle & p_SocketHandle);
+		/**
+		* \breif Handle function for request errors.
+		*		 Overrides the RequestError function in Webler::Shared if defined.
+		*
+		*/
+		virtual void RequestError(Request & p_Request, Response & p_Response);
 
-		bool Load(int p_Argc, char ** p_ppArgv);
-
-		bool Terminate();
-
-		bool IsFinished();
-
-		bool Join();
-
-		Socket::Handle & GetSocketHandle();
+		// Friend main function to let WeblerStart call Boot function.
+		friend int ::main(int argc, char ** argv);
 
 	private:
 
-		struct HostData
-		{
-			std::thread					Thread;
-			Utility::ThreadValue<bool>	Finished;
-		};
+		/**
+		* \breif Bootup function for WeblerStart macro.
+		*
+		*/
+		int Boot(int p_ArgumentCount, char ** p_ArgumentValues, Shared * p_pShared);
 
-		static unsigned int GetUniqueIdentifier();
+		void * m_Imp; //< Implementation
 
-		eType										m_Type;
-		Socket::Handle								m_SocketHandle;
-		static Utility::ThreadValue<unsigned int>	m_Identifier;
-		HANDLE										m_ProcessHandle;
-		HostData *									m_pHostData;
 	};
 
 }

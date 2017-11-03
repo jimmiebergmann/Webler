@@ -23,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-
+/*
 #include <Webler.hpp>
 #include <Daemon.hpp>
 #include <chrono>
@@ -61,6 +61,7 @@ namespace Webler
 
 		Connector * pConnector = new Connector(this, p_Port);
 		m_Connectors.insert(pConnector);
+
 	}
 
 	void Server::RequestError(Request & p_Request, Response & p_Response)
@@ -84,6 +85,7 @@ namespace Webler
 				return;
 			}
 		}
+
 	}
 
 	int Server::Stop()
@@ -135,6 +137,8 @@ namespace Webler
 
 	int Server::RunDaemon(int argc, char ** argv)
 	{
+
+
 		std::cout << "Daemon: Running." << std::endl;
 
 		Daemon daemon(Daemon::DaemonType);
@@ -153,7 +157,10 @@ namespace Webler
 
 		// Start the receive data
 		std::cout << "Daemon: Receiving data: " << socketHandle << std::endl;
-		
+*/	
+		// Parallell load the routing, while receiving http request.
+		// ..
+
 		/*HttpParser httpParser;
 		const unsigned int bufferSize = 16384;
 		static char buffer[bufferSize];
@@ -191,7 +198,7 @@ namespace Webler
 		// The http request is now parsed.
 		// Route the resource
 
-		
+/*	
 		return 0;
 	}
 
@@ -200,4 +207,7 @@ namespace Webler
 		return m_ProgramPath;
 	}
 
+
 }
+
+*/

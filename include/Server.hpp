@@ -26,57 +26,76 @@ SOFTWARE.
 
 #pragma once
 
-#include <string>
-#include <Http.hpp>
+#include <Listener.hpp>
+#include <Request.hpp>
+#include <Response.hpp>
 
+
+// Forward declarations
+int main(int argc, char ** argv);
+
+
+/**
+* \breif Webler namespace scope.
+*
+*/
 namespace Webler
 {
 
-	class Response
+	class Shared; //< Shared forward declaration.
+
+
+	/**
+	* \breif Web server main class.
+	*
+	*/
+	class Server
 	{
 
 	public:
-
-		Http::eCode GetCode() const;
-
-		void SetCode(const Http::eCode p_Code);
-
-		Response & operator << (const std::string & p_String);
-		Response & operator << (const int & p_Integer);
-
-
-	private:
-
-		class Server; //< Forward declaration
-
+	
 		/**
 		* \breif Default constructor
 		*
 		*/
-		Response();
-
-		/**
-		* \breif Copy constructor
-		*
-		*/
-		Response(const Response & p_Response);
-
-		/**
-		* \breif Initialization constructor
-		*
-		*/
-		Response(Server * p_Server);
+		Server();
 
 		/**
 		* \breif Destructor
 		*
 		*/
-		~Response();
+		virtual ~Server();
 
+		/**
+		* \breif Application defined function.
+		*		 Called once by the Webler framework at server startup.
+		*
+		* \param p_Listener Listener handler used for listening for incoming connections.
+		*
+		* \see Listener
+		*
+		*/
+		virtual void Start(Listener & p_Listener) = 0;
 
+		/**
+		* \breif Handle function for request errors.
+		*		 Overrides the RequestError function in Webler::Shared if defined.
+		*
+		*/
+		virtual void RequestError(Request & p_Request, Response & p_Response);
 
-		Http::eCode		m_Code;
-		std::string		m_Response;
+		// Friend main function to let WeblerStart call Boot function.
+		friend int ::main(int argc, char ** argv);		
+
+	private:
+
+		/**
+		* \breif Bootup function for WeblerStart macro.
+		*
+		*/
+		int Boot(int p_ArgumentCount, char ** p_ArgumentValues, Shared * p_pShared);
+
+		void * m_Imp; //< Implementation
 
 	};
 

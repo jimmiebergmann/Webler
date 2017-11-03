@@ -26,57 +26,49 @@ SOFTWARE.
 
 #pragma once
 
-#include <string>
-#include <Http.hpp>
+#include <Listener.hpp>
+#include <Request.hpp>
+#include <Response.hpp>
 
+/**
+* \breif Webler namespace scope.
+*
+*/
 namespace Webler
 {
-
-	class Response
+	/**
+	* \breif Shared server class.
+	*
+	*/
+	class Shared
 	{
 
 	public:
-
-		Http::eCode GetCode() const;
-
-		void SetCode(const Http::eCode p_Code);
-
-		Response & operator << (const std::string & p_String);
-		Response & operator << (const int & p_Integer);
-
-
-	private:
-
-		class Server; //< Forward declaration
 
 		/**
 		* \breif Default constructor
 		*
 		*/
-		Response();
-
-		/**
-		* \breif Copy constructor
-		*
-		*/
-		Response(const Response & p_Response);
-
-		/**
-		* \breif Initialization constructor
-		*
-		*/
-		Response(Server * p_Server);
+		Shared();
 
 		/**
 		* \breif Destructor
 		*
 		*/
-		~Response();
+		virtual ~Shared();
 
+		/**
+		* \breif Application defined function.
+		*		 Called once by the Webler framework at server startup.
+		*
+		* \param p_Router Request router.
+		*
+		*/
+		virtual void RequestError(Request & p_Request, Response & p_Response);
 
+	private:
 
-		Http::eCode		m_Code;
-		std::string		m_Response;
+		void * m_Imp; //< Implementation
 
 	};
 

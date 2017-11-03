@@ -24,6 +24,8 @@ SOFTWARE.
 
 */
 
+/*
+
 #include <Connector.hpp>
 #include <Webler.hpp>
 #include <exception>
@@ -115,7 +117,7 @@ namespace Webler
 
 				//ThreadData * pThreadData = new ThreadData;
 				//pThreadData->Finished.Value = false;
-
+*/
 				// Create new daemon thread
 				/*pThreadData->Thread = std::thread([this, pAcceptHandle, pThreadData]()
 				{
@@ -141,7 +143,7 @@ namespace Webler
 				//m_DaemonThreads.push_back(pThreadData);
 
 				// Set accept handle to nullptr, will force another allocation in next loop.
-				pAcceptHandle = nullptr;
+/*				pAcceptHandle = nullptr;
 			}
 
 		});
@@ -178,4 +180,4 @@ namespace Webler
 		return m_Port;
 	}
 
-}
+}*/

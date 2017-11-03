@@ -24,60 +24,38 @@ SOFTWARE.
 
 */
 
-#pragma once
+#include <Server.hpp>
 
-#include <string>
-#include <Http.hpp>
+#define IMP reinterpret_cast<ServerImp*>(this->m_Imp)
 
 namespace Webler
 {
 
-	class Response
+	// Server implementation
+	// ...
+
+
+	// Public server class
+	Server::Server()
 	{
 
-	public:
+	}
 
-		Http::eCode GetCode() const;
+	Server::~Server()
+	{
+	}
 
-		void SetCode(const Http::eCode p_Code);
+	void Server::RequestError(Request & p_Request, Response & p_Response)
+	{
+		p_Response << "Error - " << p_Response.GetCode();
+	}
 
-		Response & operator << (const std::string & p_String);
-		Response & operator << (const int & p_Integer);
+	int Server::Boot(int p_ArgumentCount, char ** p_ArgumentValues, Shared * p_pShared)
+	{
+		// Boot routine
+		// ..
 
-
-	private:
-
-		class Server; //< Forward declaration
-
-		/**
-		* \breif Default constructor
-		*
-		*/
-		Response();
-
-		/**
-		* \breif Copy constructor
-		*
-		*/
-		Response(const Response & p_Response);
-
-		/**
-		* \breif Initialization constructor
-		*
-		*/
-		Response(Server * p_Server);
-
-		/**
-		* \breif Destructor
-		*
-		*/
-		~Response();
-
-
-
-		Http::eCode		m_Code;
-		std::string		m_Response;
-
-	};
+		return 0;
+	}
 
 }

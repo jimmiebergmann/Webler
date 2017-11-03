@@ -26,58 +26,58 @@ SOFTWARE.
 
 #pragma once
 
+/*
+
+#include <Socket/Handle.hpp>
+#include <Utility\ThreadValue.hpp>
 #include <string>
-#include <Http.hpp>
 
 namespace Webler
 {
 
-	class Response
+	
+	class Daemon
 	{
 
 	public:
 
-		Http::eCode GetCode() const;
+		enum eType
+		{
+			HostType,
+			DaemonType
+		};
 
-		void SetCode(const Http::eCode p_Code);
+		Daemon(const eType p_Type);
 
-		Response & operator << (const std::string & p_String);
-		Response & operator << (const int & p_Integer);
+		~Daemon();
 
+		bool Create(const std::string & p_Program, Socket::Handle & p_SocketHandle);
+
+		bool Load(int p_Argc, char ** p_ppArgv);
+
+		bool Terminate();
+
+		bool IsFinished();
+
+		bool Join();
+
+		Socket::Handle & GetSocketHandle();
 
 	private:
 
-		class Server; //< Forward declaration
+		struct HostData
+		{
+			std::thread					Thread;
+			Utility::ThreadValue<bool>	Finished;
+		};
 
-		/**
-		* \breif Default constructor
-		*
-		*/
-		Response();
+		static unsigned int GetUniqueIdentifier();
 
-		/**
-		* \breif Copy constructor
-		*
-		*/
-		Response(const Response & p_Response);
-
-		/**
-		* \breif Initialization constructor
-		*
-		*/
-		Response(Server * p_Server);
-
-		/**
-		* \breif Destructor
-		*
-		*/
-		~Response();
-
-
-
-		Http::eCode		m_Code;
-		std::string		m_Response;
-
+		eType										m_Type;
+		Socket::Handle								m_SocketHandle;
+		static Utility::ThreadValue<unsigned int>	m_Identifier;
+		HANDLE										m_ProcessHandle;
+		HostData *									m_pHostData;
 	};
 
-}
+}*/

@@ -1,51 +1,59 @@
 #include <Webler.hpp>
 #include <iostream>
 
-class Server : public Webler::Server
+class ServerImp : public Webler::Server
 {
 
-public:
-
-	virtual void Host()
+	virtual void Start(Webler::Listener & p_Listener)
 	{
-		Listen(80);
+		p_Listener.Listen(80);
+		/*p_Listener.Listen(88);
+		p_Listener.Mute(80);
+		p_Listener.Listen(80);*/
 	}
 
-	virtual void RequestError(Webler::Request & req, Webler::Response & resp)
-	{
-		resp << "An error occured: " << resp.GetCode();
-	}
+};
 
-	virtual void Route(Webler::Router & p_Router)
+class DaemonImp : public Webler::Daemon
+{
+
+	virtual void Start(Webler::Router & p_Router)
 	{
 		p_Router.Get("/Customer/{name}", [](Webler::Request & req, Webler::Response & resp)
 		{
 			if (req.GetRouteParameter("name") == "jimmie")
 			{
 				resp << "Jimmie loves cats!";
+				return;
 			}
-
 			resp << "Unkown name, try \"jimmie\".";
 		});
 
 		p_Router.Post("/Customer/{name}", [](Webler::Request & req, Webler::Response & resp)
 		{
-			const std::string & name = req.GetRouteParameter("name");
+			auto name = req.GetRouteParameter("name");
 			resp << "Created customer \"" << name << "\"";
-			const std::string & loves = req.GetHeaderField("loves");
+			auto loves = req.GetHeaderField("loves");
 			if (loves.length())
 			{
 				resp << ", who loves " << loves << ".";
 			}
 		});
 	}
-
-private:
-
 	
 };
 
-WeblerStart(Server);
+class SharedImp : public Webler::Shared
+{
+
+	virtual void RequestError(Webler::Request & req, Webler::Response & resp)
+	{
+		resp << "An error occured: " << resp.GetCode();
+	}
+
+};
+
+WeblerStart(ServerImp, DaemonImp, SharedImp)
 
 
 

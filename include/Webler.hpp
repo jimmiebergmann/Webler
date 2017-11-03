@@ -26,7 +26,8 @@ SOFTWARE.
 
 #pragma once
 
-#include <Router.hpp>
+
+/*#include <Router.hpp>
 #include <Response.hpp>
 #include <Request.hpp>
 #include <Utility\Semaphore.hpp>
@@ -36,53 +37,53 @@ SOFTWARE.
 #include <exception>
 #include <thread>
 #include <set>
-#include <type_traits>
+#include <type_traits>*/
 //#include <signal.h>
-#include <csignal>
+/*#include <csignal>
 #include <winsock2.h>
-
+*/
 /**
 * \breif Forward declarations.
 *
 */
-int main(int argc, char ** argv);
+/*int main(int argc, char ** argv);
 void WeblerSignalHandler(int signal);
-
+*/
 
 /**
 * \breif Webler namespace scope.
 *
 */
-namespace Webler
-{
+/*namespace Webler
+{*/
 	/**
 	 * \breif Web server main class.
 	 *
 	 */
-	class Server
+/*	class Server
 	{
 
 	public:
-
+*/
 
 		/**
 		* \breif Default constructor
 		*
 		*/
-		Server();
+//		Server();
 
 		/**
 		* \breif Destructor
 		*
 		*/
-		virtual ~Server();
+//		virtual ~Server();
 
 		/**
 		* \breif Application defined function.
 		*		 Called once by the Webler framework at server startup.
 		*
 		*/
-		virtual void Host() = 0;
+//		virtual void Host() = 0;
 
 		/**
 		* \breif Application defined function.
@@ -91,7 +92,7 @@ namespace Webler
 		* \param p_Router Request router.
 		*
 		*/
-		virtual void Route(Router & p_Router) = 0;
+//		virtual void Route(Router & p_Router) = 0;
 
 		/**
 		* \breif Application defined function.
@@ -100,7 +101,7 @@ namespace Webler
 		* \param p_Router Request router.
 		*
 		*/
-		virtual void RequestError(Request & p_Request, Response & p_Response);
+//		virtual void RequestError(Request & p_Request, Response & p_Response);
 
 		/**
 		* \breif Start listening on given port.
@@ -110,7 +111,7 @@ namespace Webler
 		* \see Mute
 		*
 		*/
-		void Listen(const unsigned short p_Port);
+//		void Listen(const unsigned short p_Port);
 
 		/**
 		* \breif Stop listening on given port.
@@ -120,28 +121,28 @@ namespace Webler
 		* \see Listen
 		*
 		*/
-		void Mute(const unsigned short p_Port);
+//		void Mute(const unsigned short p_Port);
 
 		/**
 		* \breif Stop the Webler server. The application will terminate.
 		*
 		*/
-		int Stop();
+//		int Stop();
 
 		/**
 		* \breif Friend classes and functions
 		*
 		*/
-		friend class Connector;
+/*		friend class Connector;
 		friend class Router;							//< Friend router class.
 		friend int ::main(int argc, char ** argv);		//< Friend main function in order to call Start from main.
 		friend void ::WeblerSignalHandler(int signal);	//< Friend signlar handler function.
 		template <typename T> friend static int Boot(int argc, char ** argv, Server * p_pWeblerClass);
 
 	private:
-
+		*/
 		// Http class
-		class HttpParser
+	/*	class HttpParser
 		{
 
 		public:
@@ -173,7 +174,7 @@ namespace Webler
 		* \breif Functions executed by main(argc, argv), starts the Webler server.
 		*
 		*/
-		template <typename T> 
+/*		template <typename T> 
 		static int Boot(int argc, char ** argv, Server * p_pWeblerClass);
 
 		int Start(int argc, char ** argv);
@@ -189,39 +190,53 @@ namespace Webler
 		ConnectorSet				m_Connectors;
 		Utility::Semaphore			m_ExitSemaphore;
 		Utility::ThreadValue<bool>	m_Started;
-		std::string					m_ProgramPath;
+		std::string					m_ProgramPath;*/
 
-	};
+	/*};
 
 	#include <Webler.inl>
 
 }
+*/
 
+#include <Server.hpp>
+#include <Daemon.hpp>
+#include <Shared.hpp>
 
 /**
 * \breif	This macro must be called ONCE in the application
 *			and will start the server.
 *
 */
-#define WeblerStart(WeblerServerClass)\
-	static WeblerServerClass private_weblerServerClass;\
-	\
-	void private_WeblerSignalHandler(int signal)\
-	{\
-		private_weblerServerClass.Stop();\
-	}\
+
+#define WeblerStart(WeblerServer, WeblerDaemon, WeblerShared)\
 	\
 	int main(int argc, char ** argv)\
 	{\
-		if(argc == 3 && strcmp("-daemon", argv[1]) == 0) {private_weblerServerClass.m_Type = Webler::Server::eType::DaemonType;}\
-		else {private_weblerServerClass.m_Type = Webler::Server::eType::HostType;}\
+		WeblerShared * pPrivate_weblerSharedClass = new WeblerShared;\
+		if(argc == 3 && strcmp("-daemon", argv[1]) == 0)\
+		{\
+			WeblerDaemon * pPrivate_weblerDaemonClass = new WeblerDaemon;\
+			return pPrivate_weblerDaemonClass->Boot(argc, argv, pPrivate_weblerSharedClass);\
+		}\
+		else\
+		{\
+			WeblerServer * pPrivate_weblerServerClass = new WeblerServer;\
+			return pPrivate_weblerServerClass->Boot(argc, argv, pPrivate_weblerSharedClass);\
+		}\
 		\
-		std::signal(SIGABRT, private_WeblerSignalHandler);\
-		std::signal(SIGTERM, private_WeblerSignalHandler);\
-		std::signal(SIGBREAK, private_WeblerSignalHandler);\
-		return Webler::Boot<WeblerServerClass>(argc, argv, &private_weblerServerClass);\
+		return 0;\
 	}
 
+
+
+/*
+
+std::signal(SIGABRT, private_WeblerSignalHandler);\
+std::signal(SIGTERM, private_WeblerSignalHandler);\
+std::signal(SIGBREAK, private_WeblerSignalHandler);\
+
+*/
 /*#define WeblerStart(WeblerServerClass)\
 	static WeblerServerClass weblerServerClass;\
 	\

@@ -24,60 +24,46 @@ SOFTWARE.
 
 */
 
-#pragma once
+#include <Listener.hpp>
 
-#include <string>
-#include <Http.hpp>
+#define IMP reinterpret_cast<ListenerImp*>(this->m_Imp)
 
 namespace Webler
 {
 
-	class Response
+	// Listener implementation
+	// ...
+
+
+	// Public listener class
+	void Listener::Listen(const unsigned short p_Port)
 	{
 
-	public:
+	}
 
-		Http::eCode GetCode() const;
+	void Listener::Mute(const unsigned short p_Port)
+	{
 
-		void SetCode(const Http::eCode p_Code);
+	}
 
-		Response & operator << (const std::string & p_String);
-		Response & operator << (const int & p_Integer);
+	Listener::Listener()
+	{
 
+	}
+	
+	Listener::Listener(const Listener & p_Listener)
+	{
 
-	private:
+	}
+	
+	Listener::Listener(Server * p_Server)
+	{
 
-		class Server; //< Forward declaration
+	}
 
-		/**
-		* \breif Default constructor
-		*
-		*/
-		Response();
+	Listener::~Listener()
+	{
 
-		/**
-		* \breif Copy constructor
-		*
-		*/
-		Response(const Response & p_Response);
-
-		/**
-		* \breif Initialization constructor
-		*
-		*/
-		Response(Server * p_Server);
-
-		/**
-		* \breif Destructor
-		*
-		*/
-		~Response();
-
-
-
-		Http::eCode		m_Code;
-		std::string		m_Response;
-
-	};
+	}
 
 }
