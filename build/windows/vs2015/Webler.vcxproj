@@ -136,7 +136,8 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\source\Connector.cpp" />
     <ClCompile Include="..\..\..\source\Daemon.cpp" />
-    <ClCompile Include="..\..\..\source\Listener.cpp" />
+    <ClCompile Include="..\..\..\source\Settings.cpp" />
+    <ClCompile Include="..\..\..\source\Log.cpp" />
     <ClCompile Include="..\..\..\source\Private\ServerImp.cpp" />
     <ClCompile Include="..\..\..\source\Process.cpp" />
     <ClCompile Include="..\..\..\source\Json.cpp" />
@@ -151,7 +152,8 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\include\Connector.hpp" />
     <ClInclude Include="..\..\..\include\Daemon.hpp" />
-    <ClInclude Include="..\..\..\include\Listener.hpp" />
+    <ClInclude Include="..\..\..\include\Settings.hpp" />
+    <ClInclude Include="..\..\..\include\Log.hpp" />
     <ClInclude Include="..\..\..\include\Private\ServerImp.hpp" />
     <ClInclude Include="..\..\..\include\Process.hpp" />
     <ClInclude Include="..\..\..\include\Http.hpp" />

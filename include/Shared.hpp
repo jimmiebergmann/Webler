@@ -26,7 +26,6 @@ SOFTWARE.
 
 #pragma once
 
-#include <Listener.hpp>
 #include <Request.hpp>
 #include <Response.hpp>
 
@@ -65,6 +64,12 @@ namespace Webler
 		*
 		*/
 		virtual void RequestError(Request & p_Request, Response & p_Response);
+
+		/**
+		* \breif Get directory of executing application.
+		*
+		*/
+		const std::string & GetProgramDirectory() const;
 
 	private:
 

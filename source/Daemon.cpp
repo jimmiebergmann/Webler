@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include <Daemon.hpp>
 
-#define IMP reinterpret_cast<DaemonImp*>(this->m_Imp)
+#define IMP reinterpret_cast<DaemonImp*>(this->m_pImp)
 
 namespace Webler
 {

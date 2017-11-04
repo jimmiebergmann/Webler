@@ -26,9 +26,10 @@ SOFTWARE.
 
 #pragma once
 
-#include <Listener.hpp>
 #include <Request.hpp>
 #include <Response.hpp>
+#include <Shared.hpp>
+#include <Log.hpp>
 
 
 // Forward declarations
@@ -42,18 +43,70 @@ void SignalHandlerFunction(int signal);
 namespace Webler
 {
 
-	class Shared; //< Shared forward declaration.
-
-
 	/**
 	* \breif Web server main class.
 	*
 	*/
-	class Server
+	class Server : public Shared
 	{
 
 	public:
 	
+		/**
+		* \breif Server settings class
+		*
+		*/
+		class Settings
+		{
+
+		public:
+
+			friend class Server; //< Forward declaration and friendship
+
+			/**
+			* \breif Destructor
+			*
+			*/
+			~Settings();
+
+			/**
+			* \breif Start listening on given port.
+			*
+			* \param[in]	p_Port	Port to listening on.
+			*
+			* \see Mute
+			*
+			*/
+			bool Listen(const unsigned short p_Port);
+
+			/**
+			* \breif Set given log class.
+			*		 Default loggning will write to the server executable directory.
+			*
+			* \param[in]	p_pLog	Pointer to log class.
+			*
+			*/
+			bool CustomLog(Log * p_pLog);
+
+		private:
+
+			/**
+			* \breif Default constructor
+			*
+			*/
+			Settings();
+
+			/**
+			* \breif Copy constructor
+			*
+			*/
+			Settings(const Settings & p_Settings);
+
+			void * m_pImp; //< Implementation
+
+		};
+
+
 		/**
 		* \breif Default constructor
 		*
@@ -75,17 +128,11 @@ namespace Webler
 		* \see Listener
 		*
 		*/
-		virtual void Start(Listener & p_Listener) = 0;
+		virtual void Start(Settings & p_Settings) = 0;
 
-		/**
-		* \breif Handle function for request errors.
-		*		 Overrides the RequestError function in Webler::Shared if defined.
-		*
-		*/
-		virtual void RequestError(Request & p_Request, Response & p_Response);
 
 		// Friend functions and classes
-		friend class Listener;
+		friend class Settings;
 		friend int ::main(int argc, char ** argv);			//< Friend main function to let WeblerStart call Boot function.
 		friend void ::SignalHandlerFunction(int signal);	//< Friend signal handler function.
 

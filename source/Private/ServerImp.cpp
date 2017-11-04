@@ -23,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
-
+/*
 #include <Private/ServerImp.hpp>
 #include <Utility/ThreadValue.hpp>
 #include <Socket/Handle.hpp>
@@ -113,7 +113,7 @@ namespace Webler
 					m_ProcessHandle = piProc.hProcess;
 
 					std::cout << "Created daemon: " << piProc.dwProcessId << std::endl;
-					
+*/					
 					// I duplicate the socket
 					/*ret = WSADuplicateSocket(p_SocketHandle, piProc.dwProcessId, &protInfo);
 					if (ret == SOCKET_ERROR)
@@ -121,7 +121,7 @@ namespace Webler
 					std::cout << "Failed to duplicate socket. " << GetLastError() << std::endl;
 					return false;
 					}*/
-						
+/*						
 					ol.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 					// I connect to the named pipe...
@@ -169,7 +169,7 @@ namespace Webler
 						return;
 					}
 						
-
+*/
 
 					// I write the protocol information structure to the named pipe
 					/*if (WriteFile(hPipe, &protInfo, sizeof(protInfo), &dwBytes, NULL) == 0)
@@ -178,7 +178,7 @@ namespace Webler
 					return false;
 					}*/
 
-						
+/*				
 
 					// Close pipe handle.
 					CloseHandle(hPipe);
@@ -325,7 +325,8 @@ namespace Webler
 
 
 		// Server implementation
-		ServerImp::ServerImp() :
+		ServerImp::ServerImp
+		:
 			pListener(nullptr)
 		{
 
@@ -372,3 +373,5 @@ namespace Webler
 	}
 
 }
+
+*/

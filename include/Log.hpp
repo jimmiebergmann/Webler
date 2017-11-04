@@ -25,52 +25,67 @@ SOFTWARE.
 */
 
 #pragma once
-/*
-#include <Utility\Semaphore.hpp>
-#include <set>
 
-#define SERVER_IMP reinterpret_cast<Webler::Private::ServerImp*>(this->m_pImp)
-#define SERVER_IMP_FROM(Server) reinterpret_cast<Webler::Private::ServerImp*>(Server->m_pImp)
+#include <Router.hpp>
+
+
+// Forward declarations
+int main(int argc, char ** argv);
+
 
 /**
 * \breif Webler namespace scope.
 *
 */
-/*
 namespace Webler
 {
 
-	// Forward declarations
-	class Listener;
-
-
-	namespace Private
+	class Log
 	{
 
-		// Forward declarations
-		class Connector;
 
-		class ServerImp
+
+	public:
+
+		// Friend classes
+		friend class Server;
+		friend class Daemon;
+
+		enum eType
 		{
-
-		public:
-
-			ServerImp();
-			~ServerImp();
-			void Stop();
-			bool Listen(const unsigned short p_Port);
-
-			typedef std::set<Connector *> ConnectorSet;
-
-			Utility::Semaphore	ExitSemaphore;
-			Listener *			pListener;
-			ConnectorSet		Connectors;
-			std::string			ProgramPath;
-
-
+			Info,
+			Warning,
+			Error
 		};
 
-	}
+		/**
+		* \breif Default constructor
+		*
+		*/
+		Log();
+
+		/**
+		* \breif Destructor
+		*
+		*/
+		virtual ~Log();
+
+		virtual bool IsOpen();
+
+		virtual Log & operator << (const eType & p_Type);
+
+		virtual Log & operator << (const std::string & p_String);
+
+		virtual Log & operator << (const int p_Integer);
+
+		virtual Log & operator << (const unsigned int p_Integer);
+
+		virtual Log & operator << (const float p_Float);
+
+	private:
+
+		Log(const std::string & p_Filename);
+
+	};
 
 }
-*/

@@ -14,10 +14,11 @@
     <ClCompile Include="..\..\..\source\Daemon.cpp" />
     <ClCompile Include="..\..\..\source\Server.cpp" />
     <ClCompile Include="..\..\..\source\Shared.cpp" />
-    <ClCompile Include="..\..\..\source\Listener.cpp" />
     <ClCompile Include="..\..\..\source\Private\ServerImp.cpp">
       <Filter>Private</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\source\Log.cpp" />
+    <ClCompile Include="..\..\..\source\Settings.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\Json.hpp" />
@@ -40,10 +41,11 @@
     <ClInclude Include="..\..\..\include\Server.hpp" />
     <ClInclude Include="..\..\..\include\Shared.hpp" />
     <ClInclude Include="..\..\..\include\Daemon.hpp" />
-    <ClInclude Include="..\..\..\include\Listener.hpp" />
     <ClInclude Include="..\..\..\include\Private\ServerImp.hpp">
       <Filter>Private</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\include\Log.hpp" />
+    <ClInclude Include="..\..\..\include\Settings.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Utility">

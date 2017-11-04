@@ -25,8 +25,13 @@ SOFTWARE.
 */
 
 #include <Shared.hpp>
+#include <string>
+#include <Windows.h>
 
-#define IMP reinterpret_cast<SharedImp*>(this->m_Imp)
+#define IMP reinterpret_cast<SharedImp*>(this->m_pImp)
+
+static bool g_GlobalInitialized = false;
+static std::string g_ProgramDirectory = "";
 
 namespace Webler
 {
@@ -38,7 +43,39 @@ namespace Webler
 	// public shared class
 	Shared::Shared()
 	{
+		if (g_GlobalInitialized == false)
+		{
+			// Get program path
+			int pathLength = FILENAME_MAX;
+			char path[FILENAME_MAX + 1];
 
+			const int finalPathLength = GetModuleFileName(NULL, path, pathLength);
+			if (finalPathLength == 0)
+			{
+				throw new std::runtime_error("Failed to get executable path.");
+			}
+			path[finalPathLength] = 0;
+
+			// Get program directory
+			std::string directory = path;
+			int dirPos = -1;
+			for (int i = directory.size() - 1; i >= 0; i--)
+			{
+				if (directory[i] == '/' || directory[i] == '\\')
+				{
+					dirPos = i;
+					break;
+				}
+			}
+			if (dirPos < 0)
+			{
+				throw new std::runtime_error("Failed to get executable directory.");
+				return;
+			}
+			g_ProgramDirectory = directory.substr(0, dirPos);
+
+			g_GlobalInitialized = true;
+		}
 	}
 
 	Shared::~Shared()
@@ -48,6 +85,11 @@ namespace Webler
 	void Shared::RequestError(Request & p_Request, Response & p_Response)
 	{
 		p_Response << "Error - " << p_Response.GetCode();
+	}
+
+	const std::string & Shared::GetProgramDirectory() const
+	{
+		return g_ProgramDirectory;
 	}
 
 }

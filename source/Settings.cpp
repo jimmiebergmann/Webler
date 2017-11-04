@@ -23,65 +23,62 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 */
+/*
+#include <Listener.hpp>
+#include <Server.hpp>
+#include <Private/ServerImp.hpp>
 
-#pragma once
+#define IMP reinterpret_cast<ListenerImp*>(this->m_pImp)
+#define SERVER_IMP reinterpret_cast<ListenerImp*>(this->m_pImp)
 
-/**
-* \breif Webler namespace scope.
-*
-*/
 namespace Webler
 {
-	/**
-	* \breif Listener class
-	*
-	*/
-	class Listener
+
+	// Listener implementation
+	class ListenerImp
 	{
 
 	public:
 
-		friend class Server; //< Forward declaration and friendship
+		ListenerImp(Server * p_pServer) :
+			pServer(p_pServer)
+		{
 
-		/**
-		* \breif Destructor
-		*
-		*/
-		~Listener();
+		}
 
-		/**
-		* \breif Start listening on given port.
-		*
-		* \param[in]	p_Port	Port to listening on.
-		*
-		* \see Mute
-		*
-		*/
-		bool Listen(const unsigned short p_Port);
+		// Functions
 
-	private:
-
-		/**
-		* \breif Default constructor
-		*
-		*/
-		Listener();
-
-		/**
-		* \breif Copy constructor
-		*
-		*/
-		Listener(const Listener & p_Listener);
-
-		/**
-		* \breif Initialization constructor
-		*
-		*/
-		Listener(Server * p_Server);
-
-
-		void * m_pImp; //< Implementation
+		// Variables
+		Server * pServer;
 
 	};
 
-}
+
+	// Public listener class
+	Listener::~Listener()
+	{
+		delete m_pImp;
+	}
+
+	bool Listener::Listen(const unsigned short p_Port)
+	{
+		return SERVER_IMP_FROM(IMP->pServer)->Listen(p_Port);
+	}
+
+	Listener::Listener()
+	{
+
+	}
+	
+	Listener::Listener(const Listener & p_Listener)
+	{
+
+	}
+	
+	Listener::Listener(Server * p_Server) :
+		m_pImp(reinterpret_cast<void *>(new ListenerImp(p_Server)))
+	{
+
+	}
+
+}*/

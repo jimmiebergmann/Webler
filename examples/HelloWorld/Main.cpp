@@ -4,10 +4,10 @@
 class ServerImp : public Webler::Server
 {
 
-	virtual void Start(Webler::Listener & p_Listener)
+	virtual void Start(Webler::Server::Settings & p_Settings)
 	{
-		p_Listener.Listen(80);
-		p_Listener.Listen(88);
+		p_Settings.Listen(80);
+		p_Settings.Listen(88);
 	}
 
 };
