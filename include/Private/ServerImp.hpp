@@ -26,9 +26,11 @@ SOFTWARE.
 
 #pragma once
 
-#include <Listener.hpp>
-#include <Request.hpp>
-#include <Response.hpp>
+#include <Utility\Semaphore.hpp>
+#include <set>
+
+#define SERVER_IMP reinterpret_cast<Webler::Private::ServerImp*>(this->m_pImp)
+#define SERVER_IMP_FROM(Server) reinterpret_cast<Webler::Private::ServerImp*>(Server->m_pImp)
 
 /**
 * \breif Webler namespace scope.
@@ -36,40 +38,40 @@ SOFTWARE.
 */
 namespace Webler
 {
-	/**
-	* \breif Shared server class.
-	*
-	*/
-	class Shared
+
+	// Forward declarations
+	class Listener;
+
+
+	namespace Private
 	{
 
-	public:
+		// Forward declarations
+		class Connector;
 
 		/**
-		* \breif Default constructor
+		* \breif Main server implementation class
 		*
 		*/
-		Shared();
+		class ServerImp
+		{
 
-		/**
-		* \breif Destructor
-		*
-		*/
-		virtual ~Shared();
+		public:
 
-		/**
-		* \breif Application defined function.
-		*		 Called once by the Webler framework at server startup.
-		*
-		* \param p_Router Request router.
-		*
-		*/
-		virtual void RequestError(Request & p_Request, Response & p_Response);
+			ServerImp();
+			~ServerImp();
+			void Stop();
+			bool Listen(const unsigned short p_Port);
 
-	private:
+			typedef std::set<Connector *> ConnectorSet;
 
-		void * m_pImp; //< Implementation
+			Utility::Semaphore	ExitSemaphore;
+			Listener *			pListener;
+			ConnectorSet		Connectors;
+			std::string			ProgramPath;
 
-	};
+		};
+
+	}
 
 }

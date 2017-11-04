@@ -33,7 +33,7 @@ SOFTWARE.
 
 // Forward declarations
 int main(int argc, char ** argv);
-
+void SignalHandlerFunction(int signal);
 
 /**
 * \breif Webler namespace scope.
@@ -84,8 +84,10 @@ namespace Webler
 		*/
 		virtual void RequestError(Request & p_Request, Response & p_Response);
 
-		// Friend main function to let WeblerStart call Boot function.
-		friend int ::main(int argc, char ** argv);		
+		// Friend functions and classes
+		friend class Listener;
+		friend int ::main(int argc, char ** argv);			//< Friend main function to let WeblerStart call Boot function.
+		friend void ::SignalHandlerFunction(int signal);	//< Friend signal handler function.
 
 	private:
 
@@ -93,9 +95,9 @@ namespace Webler
 		* \breif Bootup function for WeblerStart macro.
 		*
 		*/
-		int Boot(int p_ArgumentCount, char ** p_ArgumentValues, Shared * p_pShared);
+		int Boot(int p_ArgumentCount, char ** p_ppArgumentValues, Shared * p_pShared);
 
-		void * m_Imp; //< Implementation
+		void * m_pImp; //< Implementation
 
 	};
 

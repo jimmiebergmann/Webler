@@ -15,6 +15,9 @@
     <ClCompile Include="..\..\..\source\Server.cpp" />
     <ClCompile Include="..\..\..\source\Shared.cpp" />
     <ClCompile Include="..\..\..\source\Listener.cpp" />
+    <ClCompile Include="..\..\..\source\Private\ServerImp.cpp">
+      <Filter>Private</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\Json.hpp" />
@@ -38,6 +41,9 @@
     <ClInclude Include="..\..\..\include\Shared.hpp" />
     <ClInclude Include="..\..\..\include\Daemon.hpp" />
     <ClInclude Include="..\..\..\include\Listener.hpp" />
+    <ClInclude Include="..\..\..\include\Private\ServerImp.hpp">
+      <Filter>Private</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Utility">
@@ -45,6 +51,9 @@
     </Filter>
     <Filter Include="Socket">
       <UniqueIdentifier>{9082d6bf-b43a-4ec6-9426-f09f258e6339}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Private">
+      <UniqueIdentifier>{6881db9c-0de0-4656-b3b8-be8623a9c8b1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

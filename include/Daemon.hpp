@@ -91,7 +91,7 @@ namespace Webler
 		*/
 		int Boot(int p_ArgumentCount, char ** p_ArgumentValues, Shared * p_pShared);
 
-		void * m_Imp; //< Implementation
+		void * m_pImp; //< Implementation
 
 	};
 

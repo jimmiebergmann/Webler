@@ -25,25 +25,44 @@ SOFTWARE.
 */
 
 #include <Listener.hpp>
+#include <Server.hpp>
+#include <Private/ServerImp.hpp>
 
-#define IMP reinterpret_cast<ListenerImp*>(this->m_Imp)
+#define IMP reinterpret_cast<ListenerImp*>(this->m_pImp)
+#define SERVER_IMP reinterpret_cast<ListenerImp*>(this->m_pImp)
 
 namespace Webler
 {
 
 	// Listener implementation
-	// ...
+	class ListenerImp
+	{
+
+	public:
+
+		ListenerImp(Server * p_pServer) :
+			pServer(p_pServer)
+		{
+
+		}
+
+		// Functions
+
+		// Variables
+		Server * pServer;
+
+	};
 
 
 	// Public listener class
-	void Listener::Listen(const unsigned short p_Port)
+	Listener::~Listener()
 	{
-
+		delete m_pImp;
 	}
 
-	void Listener::Mute(const unsigned short p_Port)
+	bool Listener::Listen(const unsigned short p_Port)
 	{
-
+		return SERVER_IMP_FROM(IMP->pServer)->Listen(p_Port);
 	}
 
 	Listener::Listener()
@@ -56,12 +75,8 @@ namespace Webler
 
 	}
 	
-	Listener::Listener(Server * p_Server)
-	{
-
-	}
-
-	Listener::~Listener()
+	Listener::Listener(Server * p_Server) :
+		m_pImp(reinterpret_cast<void *>(new ListenerImp(p_Server)))
 	{
 
 	}

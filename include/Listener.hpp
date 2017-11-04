@@ -41,6 +41,14 @@ namespace Webler
 
 	public:
 
+		friend class Server; //< Forward declaration and friendship
+
+		/**
+		* \breif Destructor
+		*
+		*/
+		~Listener();
+
 		/**
 		* \breif Start listening on given port.
 		*
@@ -49,22 +57,9 @@ namespace Webler
 		* \see Mute
 		*
 		*/
-		void Listen(const unsigned short p_Port);
-
-		/**
-		* \breif Stop listening on given port.
-		*
-		* \param[in]	p_Port	Port to stop listening on.
-		*
-		* \see Listen
-		*
-		*/
-		void Mute(const unsigned short p_Port);
-
+		bool Listen(const unsigned short p_Port);
 
 	private:
-
-		class Server; //< Forward declaration
 
 		/**
 		* \breif Default constructor
@@ -84,14 +79,8 @@ namespace Webler
 		*/
 		Listener(Server * p_Server);
 
-		/**
-		* \breif Destructor
-		*
-		*/
-		~Listener();
 
-
-		void * m_Imp; //< Implementation
+		void * m_pImp; //< Implementation
 
 	};
 
