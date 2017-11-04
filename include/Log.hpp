@@ -26,12 +26,16 @@ SOFTWARE.
 
 #pragma once
 
-#include <Router.hpp>
 
+#define WEBLER_LOG(type, message)\
+	Webler::Log::Mutex.lock();\
+	*Webler::Log::GetCurrentLog() << static_cast<Webler::Log::eType>(type);\
+	*Webler::Log::GetCurrentLog() << message;\
+	Webler::Log::GetCurrentLog()->Flush();\
+	Webler::Log::Mutex.unlock();
 
-// Forward declarations
-int main(int argc, char ** argv);
-
+#include <mutex>
+#include <string>
 
 /**
 * \breif Webler namespace scope.
@@ -40,10 +44,12 @@ int main(int argc, char ** argv);
 namespace Webler
 {
 
+	/**
+	* \breif Log class.
+	*
+	*/
 	class Log
 	{
-
-
 
 	public:
 
@@ -70,8 +76,23 @@ namespace Webler
 		*/
 		virtual ~Log();
 
+		/**
+		* \breif Check if log is open.
+		*		 Overloading and implementation is required for custom logs.
+		*
+		*/
 		virtual bool IsOpen();
 
+		/**
+		* \breif Flush log
+		*
+		*/
+		virtual void Flush();
+
+		/**
+		* \breif Logging operators
+		*
+		*/
 		virtual Log & operator << (const eType & p_Type);
 
 		virtual Log & operator << (const std::string & p_String);
@@ -82,9 +103,25 @@ namespace Webler
 
 		virtual Log & operator << (const float p_Float);
 
+		
+		static Log * GetCurrentLog();
+
+		static std::mutex Mutex;
+
 	private:
 
 		Log(const std::string & p_Filename);
+
+		class Implementation
+		{
+
+		public:
+
+			void SetCurrentLog(Log * p_pLog);
+
+		};
+
+		Implementation m_Imp;
 
 	};
 

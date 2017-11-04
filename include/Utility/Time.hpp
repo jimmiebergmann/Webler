@@ -25,52 +25,46 @@ SOFTWARE.
 */
 
 #pragma once
-/*
-#include <Utility\Semaphore.hpp>
-#include <set>
 
-#define SERVER_IMP reinterpret_cast<Webler::Private::ServerImp*>(this->m_pImp)
-#define SERVER_IMP_FROM(Server) reinterpret_cast<Webler::Private::ServerImp*>(Server->m_pImp)
+#include <string>
 
-/**
-* \breif Webler namespace scope.
-*
-*/
-/*
 namespace Webler
 {
 
-	// Forward declarations
-	class Listener;
-
-
-	namespace Private
+	namespace Utility
 	{
 
-		// Forward declarations
-		class Connector;
-
-		class ServerImp
+		class Time
 		{
 
 		public:
 
-			ServerImp();
-			~ServerImp();
-			void Stop();
-			bool Listen(const unsigned short p_Port);
+			/**
+			* \breif Get current time.
+			*
+			*/
+			static Time Now();
 
-			typedef std::set<Connector *> ConnectorSet;
+			/**
+			* \breif Get time as string, in format: YYYY-MM-DD:HH:MM:SS:vvvv
+			*
+			*/
+			std::string GetTimeString();
 
-			Utility::Semaphore	ExitSemaphore;
-			Listener *			pListener;
-			ConnectorSet		Connectors;
-			std::string			ProgramPath;
+		private:
 
+			Time();
+
+			unsigned int	m_Year;
+			unsigned int	m_Month;
+			unsigned int	m_Day;
+			unsigned int	m_Hour;
+			unsigned int	m_Minute;
+			unsigned int	m_Second;
+			unsigned int	m_Milliseconds;
 
 		};
 
 	}
 
 }
-*/

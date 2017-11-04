@@ -25,6 +25,7 @@ SOFTWARE.
 */
 
 #include <Daemon.hpp>
+#include <Windows.h>
 
 #define IMP reinterpret_cast<DaemonImp*>(this->m_pImp)
 
@@ -54,6 +55,8 @@ namespace Webler
 	{
 		// Boot routine
 		// ..
+
+		Sleep(1000 * 10);
 
 		return 0;
 	}

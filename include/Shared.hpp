@@ -66,10 +66,16 @@ namespace Webler
 		virtual void RequestError(Request & p_Request, Response & p_Response);
 
 		/**
+		* \breif Get path of executing application.
+		*
+		*/
+		static const std::string & GetProgramPath();
+
+		/**
 		* \breif Get directory of executing application.
 		*
 		*/
-		const std::string & GetProgramDirectory() const;
+		static const std::string & GetProgramDirectory();
 
 	private:
 

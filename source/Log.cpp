@@ -25,16 +25,26 @@ SOFTWARE.
 */
 
 #include <Log.hpp>
+#include <Utility/Time.hpp>
 #include <fstream>
 #include <chrono>
 
+
+// Static variables
+static Webler::Log * g_pCurrentLog = nullptr;
 static std::fstream g_File;
 static std::string g_TypeStrings[3] =
-	{"Info", "Warning", "Error"};
+	{"Info:    ", "Warning: ", "Error:   "};
+
 
 namespace Webler
 {
 
+	// Static declarations of Log class.
+	std::mutex Log::Mutex;
+
+
+	// Log class.
 	Log::Log()
 	{
 
@@ -53,6 +63,16 @@ namespace Webler
 		return g_File.is_open();
 	}
 
+	void Log::Flush()
+	{
+		g_File.flush();
+	}
+
+	Log * Log::GetCurrentLog()
+	{
+		return g_pCurrentLog;
+	}
+
 	Log & Log::operator << (const eType & p_Type)
 	{
 		if (g_File.is_open() == false)
@@ -63,8 +83,7 @@ namespace Webler
 		g_File.flush();
 
 		g_File << "\n";
-		g_File << g_TypeStrings[p_Type] << ": ";
-
+		g_File << Utility::Time::Now().GetTimeString() << " - " << g_TypeStrings[p_Type];
 
 		return *this;
 	}
@@ -77,7 +96,7 @@ namespace Webler
 		}
 
 		g_File << p_String;
-
+		
 		return *this;
 	}
 
@@ -117,25 +136,39 @@ namespace Webler
 		return *this;
 	}
 
+	Log * GetCurrentLog()
+	{
+		return g_pCurrentLog;
+	}
+
 	Log::Log(const std::string & p_Filename)
 	{
+		// Check if log file exists.
+		bool newLog = false;
+		std::ifstream readLog(p_Filename);
+		if (readLog.is_open() == false)
+		{
+			newLog = true;
+		}
+		else
+		{
+			readLog.close();
+		}
+
+		// Open log
 		g_File.open(p_Filename.c_str(), std::fstream::app);
 		
-		if (g_File.is_open())
+		if (g_File.is_open() && newLog)
 		{
-			// Get log file size
-			g_File.seekp(0, std::fstream::end);
-			int fileSize = g_File.tellg();
-			g_File.seekp(0, std::fstream::beg);
-
-			if (fileSize != 0)
-			{
-				g_File << "\n";
-			}
-
-			g_File << "Started log at ...\n";
+			g_File << "Webler log created at YYYY-MM-DD:HH:MM:SS.\n";
+			g_File << "---------------------------------------------------------\n";
 			g_File.flush();
 		}
+	}
+
+	void Log::Implementation::SetCurrentLog(Log * p_pLog)
+	{
+		g_pCurrentLog = p_pLog;
 	}
 
 }

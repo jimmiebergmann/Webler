@@ -9,16 +9,14 @@
       <Filter>Utility</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\source\Router.cpp" />
-    <ClCompile Include="..\..\..\source\Connector.cpp" />
     <ClCompile Include="..\..\..\source\Process.cpp" />
     <ClCompile Include="..\..\..\source\Daemon.cpp" />
     <ClCompile Include="..\..\..\source\Server.cpp" />
     <ClCompile Include="..\..\..\source\Shared.cpp" />
-    <ClCompile Include="..\..\..\source\Private\ServerImp.cpp">
-      <Filter>Private</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\source\Log.cpp" />
-    <ClCompile Include="..\..\..\source\Settings.cpp" />
+    <ClCompile Include="..\..\..\source\Utility\Time.cpp">
+      <Filter>Utility</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\Json.hpp" />
@@ -31,31 +29,20 @@
     <ClInclude Include="..\..\..\include\Utility\ThreadValue.hpp">
       <Filter>Utility</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\Socket\Handle.hpp">
-      <Filter>Socket</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\include\Router.hpp" />
-    <ClInclude Include="..\..\..\include\Connector.hpp" />
     <ClInclude Include="..\..\..\include\Http.hpp" />
     <ClInclude Include="..\..\..\include\Process.hpp" />
     <ClInclude Include="..\..\..\include\Server.hpp" />
     <ClInclude Include="..\..\..\include\Shared.hpp" />
     <ClInclude Include="..\..\..\include\Daemon.hpp" />
-    <ClInclude Include="..\..\..\include\Private\ServerImp.hpp">
-      <Filter>Private</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\include\Log.hpp" />
-    <ClInclude Include="..\..\..\include\Settings.hpp" />
+    <ClInclude Include="..\..\..\include\Utility\Time.hpp">
+      <Filter>Utility</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Utility">
       <UniqueIdentifier>{a975d01c-96f7-46a8-8465-fce4bc97c0cf}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Socket">
-      <UniqueIdentifier>{9082d6bf-b43a-4ec6-9426-f09f258e6339}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Private">
-      <UniqueIdentifier>{6881db9c-0de0-4656-b3b8-be8623a9c8b1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

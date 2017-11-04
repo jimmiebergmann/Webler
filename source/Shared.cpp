@@ -32,6 +32,7 @@ SOFTWARE.
 
 static bool g_GlobalInitialized = false;
 static std::string g_ProgramDirectory = "";
+static std::string g_ProgramPath = "";
 
 namespace Webler
 {
@@ -57,11 +58,11 @@ namespace Webler
 			path[finalPathLength] = 0;
 
 			// Get program directory
-			std::string directory = path;
+			g_ProgramPath = path;
 			int dirPos = -1;
-			for (int i = directory.size() - 1; i >= 0; i--)
+			for (int i = g_ProgramPath.size() - 1; i >= 0; i--)
 			{
-				if (directory[i] == '/' || directory[i] == '\\')
+				if (g_ProgramPath[i] == '/' || g_ProgramPath[i] == '\\')
 				{
 					dirPos = i;
 					break;
@@ -72,7 +73,7 @@ namespace Webler
 				throw new std::runtime_error("Failed to get executable directory.");
 				return;
 			}
-			g_ProgramDirectory = directory.substr(0, dirPos);
+			g_ProgramDirectory = g_ProgramPath.substr(0, dirPos);
 
 			g_GlobalInitialized = true;
 		}
@@ -87,7 +88,12 @@ namespace Webler
 		p_Response << "Error - " << p_Response.GetCode();
 	}
 
-	const std::string & Shared::GetProgramDirectory() const
+	const std::string & Shared::GetProgramPath()
+	{
+		return g_ProgramPath;
+	}
+
+	const std::string & Shared::GetProgramDirectory()
 	{
 		return g_ProgramDirectory;
 	}

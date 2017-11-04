@@ -25,31 +25,34 @@ SOFTWARE.
 */
 
 #include <Server.hpp>
+#include <Log.hpp>
 //#include <Private/ServerImp.hpp>
 #include <Utility/Semaphore.hpp>
 #include <Utility/ThreadValue.hpp>
 #include <csignal>
 #include <set>
+#include <list>
 #include <iostream>
+#include <sstream>
 #include <Log.hpp>
 #include <exception>
 #include <WinSock2.h>
 
-// Static pointer to server class.
+// Static functions / variables
 static Webler::Server * g_pServerInstance = nullptr;
-static Webler::Log * g_pLog = nullptr;
+static Webler::Utility::ThreadValue<unsigned int> g_DaemonProcessCounter;
 static void SignalHandlerFunction(int signal);
 
 #define SERVER_IMP reinterpret_cast<Webler::ServerImp*>(this->m_pImp)
 #define SERVER_IMP_FROM(Server) reinterpret_cast<Webler::ServerImp*>(Server->m_pImp)
 #define SETTINGS_IMP reinterpret_cast<SettingsImp*>(this->m_pImp)
 #define SERVER_SETTINGS_IMP reinterpret_cast<Webler::SettingsImp*>(reinterpret_cast<Webler::ServerImp*>(this->m_pImp)->pSettings->m_pImp)
-#define WEBLER_LOG (*g_pLog)
 
 namespace Webler
 {
 	// Forward declarations
 	class Listener;
+	class SettingsImp;
 
 
 	// Socket handle
@@ -84,21 +87,170 @@ namespace Webler
 
 		}
 
-		bool Listen(const unsigned short p_Port)
-		{
-
-			return false;
-		}
-
 		typedef std::set<Listener *> ListenerSet;
-
 		Utility::Semaphore	ExitSemaphore;
 		Server::Settings *  pSettings;
 		ListenerSet			Listeners;
-		//std::string		ProgramPath;
-
 
 	};
+
+
+
+
+	// Daemon process class
+	class DaemonProcess
+	{
+
+	public:
+
+		bool Create(const std::string & p_Program, Socket::Handle & p_SocketHandle)
+		{
+			m_Thread = std::thread([this, p_Program, p_SocketHandle]()
+			{
+				BOOL ret = 0;
+				HANDLE hPipe;
+				DWORD dwBytes;
+				PROCESS_INFORMATION piProc;
+				STARTUPINFO siStartInfo;
+				WSAPROTOCOL_INFO protInfo;
+				OVERLAPPED ol = { 0,0,0,0,NULL };
+
+				DWORD processId = GetCurrentProcessId();
+				std::stringstream ss;
+				ss << processId << "_" << GetNextProcessId();
+				std::string pipeName = "\\\\.\\pipe\\Webler_shared_mem_" + ss.str();
+
+				// I create a named pipe for communication with the spawned process
+				const DWORD BUFSIZE = 256;
+				const DWORD PIPE_TIMEOUT_CONNECT = 3000;
+
+				hPipe = CreateNamedPipe(
+					pipeName.c_str(),				// pipe name
+					PIPE_ACCESS_DUPLEX |			// read/write access
+					FILE_FLAG_OVERLAPPED,
+					PIPE_TYPE_BYTE |				// message type pipe
+					PIPE_READMODE_BYTE |			// message-read mode
+					PIPE_WAIT,						// blocking mode
+					PIPE_UNLIMITED_INSTANCES,		// max. instances
+					BUFSIZE,						// output buffer size
+					BUFSIZE,						// input buffer size
+					PIPE_TIMEOUT_CONNECT,			// client time-out
+					NULL);							// default security attribute
+
+				if (hPipe == INVALID_HANDLE_VALUE)
+				{
+					std::cout << "Failed to create named pipe. " << GetLastError() << std::endl;
+					return;
+				}
+
+				// I create a new process(daemon)
+				GetStartupInfo(&siStartInfo);
+				const std::string programArgs = p_Program + " -daemon " + pipeName;
+
+				ret = CreateProcess(p_Program.c_str(), const_cast<LPSTR>(programArgs.c_str()),
+					NULL, NULL, // security attributes process/thread
+					TRUE,       // inherit handle
+					0, // fdwCreate
+					NULL, // lpvEnvironment 
+					".", // lpszCurDir
+					&siStartInfo, // lpsiStartInfo 
+					&piProc);
+
+				if (ret == 0)
+				{
+					std::cout << "Failed to create daemon process. " << GetLastError() << std::endl;
+					return;
+				}
+
+				m_ProcessHandle = piProc.hProcess;
+
+				std::cout << "Created daemon: " << piProc.dwProcessId << std::endl;
+				
+				// I duplicate the socket
+				/*ret = WSADuplicateSocket(p_SocketHandle, piProc.dwProcessId, &protInfo);
+				if (ret == SOCKET_ERROR)
+				{
+				std::cout << "Failed to duplicate socket. " << GetLastError() << std::endl;
+				return false;
+				}*/
+					
+				ol.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+				// I connect to the named pipe...
+				ret = ConnectNamedPipe(hPipe, &ol);
+				if (ret == 0)
+				{
+					switch (GetLastError())
+					{
+					case ERROR_PIPE_CONNECTED:
+						std::cout << "ERROR_PIPE_CONNECTED" << std::endl;
+						ret = TRUE;
+						break;
+
+					case ERROR_IO_PENDING:
+						std::cout << "Waiting for daemon process connection." << std::endl;
+						if (WaitForSingleObject(ol.hEvent, PIPE_TIMEOUT_CONNECT) == WAIT_OBJECT_0)
+						{
+							std::cout << "WAit.. " << PIPE_TIMEOUT_CONNECT << std::endl;
+							DWORD dwIgnore;
+							ret = GetOverlappedResult(hPipe, &ol, &dwIgnore, FALSE);
+						}
+						else
+						{
+							std::cout << "Cancel IO, no daemon process connected to pipe." << std::endl;
+							CancelIo(hPipe);
+						}
+						break;
+					}
+				}
+
+				CloseHandle(ol.hEvent);
+
+				if (ret == 0)
+				{
+					std::cout << "Failed to connect named pipe. : " << pipeName << " - " << GetLastError() << std::endl;
+					return;
+				}
+
+
+				// I write the socket descriptor to the named pipe
+				if (WriteFile(hPipe, &p_SocketHandle, sizeof(p_SocketHandle), &dwBytes, NULL) == 0)
+				{
+					std::cout << "Failed to write socket handle to shared memory. " << GetLastError() << std::endl;
+					return;
+				}
+
+
+				// I write the protocol information structure to the named pipe
+				/*if (WriteFile(hPipe, &protInfo, sizeof(protInfo), &dwBytes, NULL) == 0)
+				{
+				std::cout << "Failed to write prot info to shared memory. " << GetLastError() << std::endl;
+				return false;
+				}*/
+	
+
+				// Close pipe handle.
+				CloseHandle(hPipe);
+
+			});
+
+			return true;
+		}
+
+	private:
+
+		unsigned int GetNextProcessId()
+		{
+			std::lock_guard<std::mutex> lock(g_DaemonProcessCounter.Mutex);
+			return (g_DaemonProcessCounter.Value += 1);
+		}
+
+		std::thread			m_Thread;
+		Socket::Handle		m_SocketHandle;
+		HANDLE				m_ProcessHandle;
+
+	};
+
 
 
 	// Listener class
@@ -112,11 +264,18 @@ namespace Webler
 			m_Handle(0),
 			m_Running(false)
 		{
-			/*// Create socket
+		}
+
+		bool Start(const unsigned short p_Port)
+		{
+			// Create socket
 			if ((m_Handle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) <= 0)
 			{
-				throw new std::runtime_error("Failed to create socket. Error code: " + std::to_string(WSAGetLastError()));
+				WEBLER_LOG(Log::Error, "Failed to create socket. Error code : " << std::to_string(WSAGetLastError()) );
+				return false;
 			}
+
+			m_Port = p_Port;
 
 			// Bind
 			sockaddr_in service;
@@ -127,14 +286,16 @@ namespace Webler
 			if (bind(m_Handle, reinterpret_cast<const sockaddr *>(&service), sizeof(service)) != 0)
 			{
 				closesocket(m_Handle);
-				throw new std::runtime_error("Failed to bind socket. Error code: " + std::to_string(WSAGetLastError()));
+				WEBLER_LOG(Log::Error, "Failed to bind socket. Error code: " + std::to_string(WSAGetLastError()) );
+				return false;
 			}
 
 			// Listen
 			if (listen(m_Handle, SOMAXCONN) != 0)
 			{
 				closesocket(m_Handle);
-				throw new std::runtime_error("Failed to listen on port " + std::to_string(m_Port) + ". Error code: " + std::to_string(WSAGetLastError()));
+				WEBLER_LOG(Log::Error, "Failed to listen on port " + std::to_string(m_Port) + ". Error code: " + std::to_string(WSAGetLastError()) );
+				return false;
 			}
 
 			m_Running.Set(true);
@@ -164,11 +325,10 @@ namespace Webler
 
 							if (m_Running.Get() == true)
 							{
-								throw new std::runtime_error("Listen socket of port " + std::to_string(m_Port) +
+								WEBLER_LOG(Log::Error, "Listen socket of port " + std::to_string(m_Port) +
 									" closed unexpectedly. Error code: " + std::to_string(WSAGetLastError()));
+								return;
 							}
-
-							return;
 						}
 						// Peer reseted connection.
 						if (error == WSAECONNRESET)
@@ -178,14 +338,15 @@ namespace Webler
 
 						// Undefined error.
 						delete pAcceptHandle;
-						throw new std::runtime_error("Failed to accept connection. Error code: " + std::to_string(WSAGetLastError()));
+						WEBLER_LOG(Log::Error, "Failed to accept connection. Error code: " + std::to_string(WSAGetLastError()));
+						return;
 					}
 
-					std::cout << "Client connected!" << std::endl;
+					WEBLER_LOG(Log::Info, "Client connected.");
 
 					// Create a daemon
 					DaemonProcess * pDaemonProcess = new DaemonProcess();
-					if (pDaemonProcess->Create(pServerImp->ProgramPath, *pAcceptHandle) == false)
+					if (pDaemonProcess->Create(Server::GetProgramPath(), *pAcceptHandle) == false)
 					{
 						throw new std::runtime_error("Failed to create daemon process.");
 					}
@@ -194,48 +355,6 @@ namespace Webler
 					m_DaemonProcesses.push_back(pDaemonProcess);
 					pAcceptHandle = nullptr;
 				}
-			});*/
-		}
-
-		bool Start(const unsigned short p_Port)
-		{
-			
-			// Create socket
-			if ((m_Handle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) <= 0)
-			{
-				WEBLER_LOG << Log::Error << "Failed to create socket. Error code : " + std::to_string(WSAGetLastError());
-				return false;
-			}
-
-			m_Port = p_Port;
-
-			// Bind
-			sockaddr_in service;
-			service.sin_family = AF_INET;
-			service.sin_addr.s_addr = htonl(0);
-			service.sin_port = htons(static_cast<USHORT>(p_Port));
-
-			if (bind(m_Handle, reinterpret_cast<const sockaddr *>(&service), sizeof(service)) != 0)
-			{
-				closesocket(m_Handle);
-				WEBLER_LOG << Log::Error << "Failed to bind socket. Error code: " + std::to_string(WSAGetLastError());
-				return false;
-			}
-
-			// Listen
-			if (listen(m_Handle, SOMAXCONN) != 0)
-			{
-				closesocket(m_Handle);
-				WEBLER_LOG << Log::Error << "Failed to listen on port " + std::to_string(m_Port) + ". Error code: " + std::to_string(WSAGetLastError());
-				return false;
-			}
-
-			m_Running.Set(true);
-
-			// Start thread
-			m_Thread = std::thread([this]()
-			{
-				Socket::Handle * pAcceptHandle = nullptr;
 			});
 
 			return true;
@@ -257,11 +376,11 @@ namespace Webler
 
 	private:
 
-		//typedef std::list<DaemonProcess *> DaemonDaemonProcessList;
+		typedef std::list<DaemonProcess *> DaemonDaemonProcessList;
 
 		Socket::Handle					m_Handle;
 		std::thread						m_Thread;
-		//DaemonDaemonProcessList			m_DaemonProcesses;
+		DaemonDaemonProcessList			m_DaemonProcesses;
 		Utility::ThreadValue<bool>		m_Running;
 		unsigned short					m_Port;
 
@@ -375,18 +494,19 @@ namespace Webler
 
 
 		// Set log class
-		g_pLog = pSettingsImp->pLog;
-		if (g_pLog == nullptr)
+		Log * pLog = pSettingsImp->pLog;
+		if (pLog == nullptr)
 		{
 			/// ADD PROGRAM DIR PATH.
 			const std::string logPath = GetProgramDirectory() + "/server.log";
-			g_pLog = new Log(logPath);
-			if (g_pLog->IsOpen() == false)
+			pLog = new Log(logPath);
+			if (pLog->IsOpen() == false)
 			{
 				std::cout << "Failed to open server log file: " <<  logPath << std::endl;
 				return 0;
 			}
 		}
+		pLog->m_Imp.SetCurrentLog(pLog);
 
 		// Start to listen on ports in settings
 		for (auto it = pSettingsImp->ListenPorts.begin(); it != pSettingsImp->ListenPorts.end(); it++)
@@ -395,15 +515,15 @@ namespace Webler
 			Listener * pListener = new Listener;
 			if (pListener->Start(port) == false)
 			{
-				std::cout << Log::Error << "Failed to listen on port " << port << ".";
-				WEBLER_LOG << Log::Error << "Failed to listen on port " << port << ".";
+				std::cout << Log::Error << "Errror: Failed to listen on port " << port << ".";
+				WEBLER_LOG(Log::Error, "Failed to listen on port " << port << ".");
 				return 0;
 			}
 
 			SERVER_IMP->Listeners.insert(pListener);
 		}
 
-		WEBLER_LOG << Webler::Log::Info << "Server running.";
+		WEBLER_LOG(Webler::Log::Info, "Server running." );
 
 		// Bind signals
 		std::signal(SIGABRT, SignalHandlerFunction);
@@ -422,17 +542,17 @@ namespace Webler
 // Signals are bound in Boot function.
 static void SignalHandlerFunction(int signal)
 {
-	if (g_pLog)
+	// Stop server
+	if (g_pServerInstance == nullptr)
 	{
-		WEBLER_LOG << Webler::Log::Info << "Stopping server.";
-		delete g_pLog;
+		SERVER_IMP_FROM(g_pServerInstance)->Stop();
+		g_pServerInstance = nullptr;
 	}
 
-
-	/*if (g_pServerInstance == nullptr)
+	// Close the log
+	if (Webler::Log::GetCurrentLog())
 	{
-		return;
+		WEBLER_LOG(Webler::Log::Info, "Server stopped.");
+		delete Webler::Log::GetCurrentLog();
 	}
-	SERVER_IMP_FROM(g_pServerInstance)->Stop();
-	g_pServerInstance = nullptr;*/
 }
