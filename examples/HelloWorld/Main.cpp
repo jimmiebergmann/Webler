@@ -6,8 +6,7 @@ class ServerImp : public Webler::Server
 
 	virtual void Start(Webler::Server::Settings & p_Settings)
 	{
-		p_Settings.Listen(80);
-		p_Settings.Listen(88);
+		p_Settings.Listen(80).Listen(88).MaxExecutionTime(5);
 	}
 
 };
@@ -36,7 +35,7 @@ class DaemonImp : public Webler::Daemon
 			{
 				resp << ", who loves " << loves << ".";
 			}
-		});
+		}).MaxExecutionTime(3);
 	}
 	
 };

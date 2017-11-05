@@ -27,6 +27,7 @@ SOFTWARE.
 #pragma once
 
 #include <Router.hpp>
+#include <Shared.hpp>
 
 
 // Forward declarations
@@ -40,14 +41,11 @@ int main(int argc, char ** argv);
 namespace Webler
 {
 
-	class Shared; //< Shared forward declaration.
-
-
 	/**
 	* \breif Daemon class.
 	*
 	*/
-	class Daemon
+	class Daemon : public Shared
 	{
 
 	public:
@@ -73,13 +71,6 @@ namespace Webler
 		*/
 		virtual void Start(Webler::Router & p_Router) = 0;
 
-		/**
-		* \breif Handle function for request errors.
-		*		 Overrides the RequestError function in Webler::Shared if defined.
-		*
-		*/
-		virtual void RequestError(Request & p_Request, Response & p_Response);
-
 		// Friend main function to let WeblerStart call Boot function.
 		friend int ::main(int argc, char ** argv);
 
@@ -89,7 +80,7 @@ namespace Webler
 		* \breif Bootup function for WeblerStart macro.
 		*
 		*/
-		int Boot(int p_ArgumentCount, char ** p_ArgumentValues, Shared * p_pShared);
+		int Boot(int p_ArgumentCount, char ** p_ppArgumentValues, Shared * p_pShared);
 
 		void * m_pImp; //< Implementation
 

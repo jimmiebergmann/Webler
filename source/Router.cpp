@@ -27,6 +27,9 @@ SOFTWARE.
 #include <Router.hpp>
 #include <Webler.hpp>
 
+// TEMP
+static Webler::Router::Route g_Route;
+
 namespace Webler
 {
 
@@ -40,13 +43,19 @@ namespace Webler
 
 	}
 
-	void Router::Get(const std::string & p_Route, CallbackFunction p_Callback)
+	Router::Route & Router::Route::MaxExecutionTime(const unsigned int p_Seconds)
 	{
-		
+		return g_Route;
 	}
 
-	void Router::Post(const std::string & p_Route, CallbackFunction p_Callback)
+	Router::Route & Router::Get(const std::string & p_Route, CallbackFunction p_Callback)
 	{
+		return g_Route;
+	}
+
+	Router::Route & Router::Post(const std::string & p_Route, CallbackFunction p_Callback)
+	{
+		return g_Route;
 	}
 
 }

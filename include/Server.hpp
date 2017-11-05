@@ -77,7 +77,7 @@ namespace Webler
 			* \see Mute
 			*
 			*/
-			bool Listen(const unsigned short p_Port);
+			Server::Settings & Listen(const unsigned short p_Port);
 
 			/**
 			* \breif Set given log class.
@@ -86,7 +86,16 @@ namespace Webler
 			* \param[in]	p_pLog	Pointer to log class.
 			*
 			*/
-			bool CustomLog(Log * p_pLog);
+			Server::Settings & CustomLog(Log * p_pLog);
+
+			/**
+			* \breif Set maximum execution time of daemon process.
+			*		 Default: 30
+			*
+			* \param p_Seconds Execution time in seconds. 0 = infinite of time.
+			*
+			*/
+			Server::Settings & MaxExecutionTime(const unsigned int p_Seconds);
 
 		private:
 

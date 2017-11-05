@@ -91,6 +91,7 @@ namespace Webler
 		Utility::Semaphore	ExitSemaphore;
 		Server::Settings *  pSettings;
 		ListenerSet			Listeners;
+		unsigned int		MaxExecutionTime;
 
 	};
 
@@ -102,6 +103,18 @@ namespace Webler
 	{
 
 	public:
+
+		DaemonProcess() :
+			m_ThreadCreated(false),
+			m_Started(false),
+			m_ProcessHandle(0)
+		{
+		}
+
+		DaemonProcess::~DaemonProcess()
+		{
+			Terminate();
+		}
 
 		bool Create(const std::string & p_Program, Socket::Handle & p_SocketHandle)
 		{
@@ -139,7 +152,7 @@ namespace Webler
 
 				if (hPipe == INVALID_HANDLE_VALUE)
 				{
-					std::cout << "Failed to create named pipe. " << GetLastError() << std::endl;
+					WEBLER_LOG(Log::Error, "Failed to create named pipe: " << pipeName << ". " << static_cast<int>(GetLastError()) );
 					return;
 				}
 
@@ -158,13 +171,13 @@ namespace Webler
 
 				if (ret == 0)
 				{
-					std::cout << "Failed to create daemon process. " << GetLastError() << std::endl;
+					WEBLER_LOG(Log::Error, "Failed to create daemon process: " << pipeName << ". " << static_cast<int>(GetLastError()) );
 					return;
 				}
 
-				m_ProcessHandle = piProc.hProcess;
-
-				std::cout << "Created daemon: " << piProc.dwProcessId << std::endl;
+				// Notify daemon process as started.
+				m_ProcessHandle.Set(piProc.hProcess);
+				m_Started.Set(true);
 				
 				// I duplicate the socket
 				/*ret = WSADuplicateSocket(p_SocketHandle, piProc.dwProcessId, &protInfo);
@@ -183,21 +196,17 @@ namespace Webler
 					switch (GetLastError())
 					{
 					case ERROR_PIPE_CONNECTED:
-						std::cout << "ERROR_PIPE_CONNECTED" << std::endl;
 						ret = TRUE;
 						break;
 
 					case ERROR_IO_PENDING:
-						std::cout << "Waiting for daemon process connection." << std::endl;
 						if (WaitForSingleObject(ol.hEvent, PIPE_TIMEOUT_CONNECT) == WAIT_OBJECT_0)
 						{
-							std::cout << "WAit.. " << PIPE_TIMEOUT_CONNECT << std::endl;
 							DWORD dwIgnore;
 							ret = GetOverlappedResult(hPipe, &ol, &dwIgnore, FALSE);
 						}
 						else
 						{
-							std::cout << "Cancel IO, no daemon process connected to pipe." << std::endl;
 							CancelIo(hPipe);
 						}
 						break;
@@ -208,7 +217,7 @@ namespace Webler
 
 				if (ret == 0)
 				{
-					std::cout << "Failed to connect named pipe. : " << pipeName << " - " << GetLastError() << std::endl;
+					WEBLER_LOG(Log::Error, "Failed to connect named pipe. : " << pipeName << " - " << static_cast<int>(GetLastError()) );
 					return;
 				}
 
@@ -216,10 +225,9 @@ namespace Webler
 				// I write the socket descriptor to the named pipe
 				if (WriteFile(hPipe, &p_SocketHandle, sizeof(p_SocketHandle), &dwBytes, NULL) == 0)
 				{
-					std::cout << "Failed to write socket handle to shared memory. " << GetLastError() << std::endl;
+					WEBLER_LOG(Log::Error, "Failed to write socket handle to shared memory. " << static_cast<int>(GetLastError()) );
 					return;
 				}
-
 
 				// I write the protocol information structure to the named pipe
 				/*if (WriteFile(hPipe, &protInfo, sizeof(protInfo), &dwBytes, NULL) == 0)
@@ -234,7 +242,34 @@ namespace Webler
 
 			});
 
+			m_ThreadCreated = true;
 			return true;
+		}
+
+		void Terminate()
+		{
+			if (m_ThreadCreated)
+			{
+				if (m_Started.Get())
+				{
+					TerminateProcess(m_ProcessHandle.Get(), 0);
+				}
+			
+				m_Thread.join();
+			}
+			m_Started.Set(false);
+			m_ProcessHandle.Set(false);
+			m_ThreadCreated = false;
+		}
+
+		bool IsStarted()
+		{
+			return m_Started.Get();
+		}
+
+		HANDLE GetProcessHandle()
+		{
+			return m_ProcessHandle.Get();
 		}
 
 	private:
@@ -245,9 +280,12 @@ namespace Webler
 			return (g_DaemonProcessCounter.Value += 1);
 		}
 
-		std::thread			m_Thread;
-		Socket::Handle		m_SocketHandle;
-		HANDLE				m_ProcessHandle;
+		std::thread						m_Thread;
+		bool							m_ThreadCreated;
+		Socket::Handle					m_SocketHandle;
+		Utility::Semaphore				m_StartingSemaphore;
+		Utility::ThreadValue<bool>		m_Started;
+		Utility::ThreadValue<HANDLE>	m_ProcessHandle;
 
 	};
 
@@ -367,6 +405,12 @@ namespace Webler
 				m_Running.Set(false);
 				m_Thread.join();
 			}
+
+			// Cleanup daemon processes
+			for (auto it = m_DaemonProcesses.begin(); it != m_DaemonProcesses.end(); it++)
+			{
+				delete *it;
+			}
 		}
 
 		const unsigned short GetPort() const
@@ -395,13 +439,15 @@ namespace Webler
 	public:
 
 		SettingsImp() :
-			pLog(nullptr)
+			pLog(nullptr),
+			MaxExecutionTime(30)
 		{
 
 		}
 
 		Log *						pLog;
 		std::set<unsigned short>	ListenPorts;
+		unsigned int				MaxExecutionTime;
 
 	};
 
@@ -414,23 +460,23 @@ namespace Webler
 		delete m_pImp;
 	}
 
-	bool Server::Settings::Listen(const unsigned short p_Port)
+	Server::Settings & Server::Settings::Listen(const unsigned short p_Port)
 	{
 		auto it = SETTINGS_IMP->ListenPorts.find(p_Port);
 		if (it != SETTINGS_IMP->ListenPorts.end())
 		{
-			return false;
+			return *this;
 		}
 
 		SETTINGS_IMP->ListenPorts.insert(p_Port);
-		return true;
+		return *this;
 	}
 
-	bool Server::Settings::CustomLog(Log * p_pLog)
+	Server::Settings & Server::Settings::CustomLog(Log * p_pLog)
 	{
 		if (p_pLog == nullptr)
 		{
-			return false;
+			return *this;
 		}
 
 		if (SETTINGS_IMP->pLog)
@@ -439,7 +485,13 @@ namespace Webler
 		}
 
 		SETTINGS_IMP->pLog = p_pLog;
-		return true;
+		return *this;
+	}
+
+	Server::Settings & Server::Settings::MaxExecutionTime(const unsigned int p_Seconds)
+	{
+		SETTINGS_IMP->MaxExecutionTime = p_Seconds;
+		return *this;
 	}
 
 	Server::Settings::Settings() :
@@ -492,12 +544,10 @@ namespace Webler
 		// Run user definied Start function.
 		Start(*SERVER_IMP->pSettings);
 
-
 		// Set log class
 		Log * pLog = pSettingsImp->pLog;
 		if (pLog == nullptr)
 		{
-			/// ADD PROGRAM DIR PATH.
 			const std::string logPath = GetProgramDirectory() + "/server.log";
 			pLog = new Log(logPath);
 			if (pLog->IsOpen() == false)
@@ -507,6 +557,9 @@ namespace Webler
 			}
 		}
 		pLog->m_Imp.SetCurrentLog(pLog);
+
+		// Set maximum execution time
+		SERVER_IMP->MaxExecutionTime = pSettingsImp->MaxExecutionTime;
 
 		// Start to listen on ports in settings
 		for (auto it = pSettingsImp->ListenPorts.begin(); it != pSettingsImp->ListenPorts.end(); it++)
