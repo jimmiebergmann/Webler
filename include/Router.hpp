@@ -68,26 +68,16 @@ namespace Webler
 		typedef std::function<void(Request &, Response &)> CallbackFunction;
 
 		/**
-		* \breif Route GET request
+		* \breif Route path
 		*
-		* \param[in]	p_Route	Route to given callback function.
-		*						Specify wildcard arguments in curly brackets.
-		*						Example: /customer/{name}
-		* \param[in]	p_Callback Callback function for request.
-		*
-		*/
-		Router::Route & Get(const std::string & p_Route, CallbackFunction p_Callback);
-
-		/**
-		* \breif Route POST request
-		*
-		* \param[in]	p_Route	Route to given callback function.
-		*						Specify wildcard arguments in curly brackets.
-		*						Example: /customer/{name}
-		* \param[in]	p_Callback Callback function for request.
+		* \param[in]	p_Method	Incasesensitive method name to route.
+		* \param[in]	p_Path		Route path to given callback function.
+		*							Specify wildcard arguments in curly brackets.
+		*							Example: /customer/{name}
+		* \param[in]	p_Callback	Callback function for request.
 		*
 		*/
-		Router::Route & Post(const std::string & p_Route, CallbackFunction p_Callback);
+		Router::Route & Add(const std::string & p_Method, const std::string & p_Path, CallbackFunction p_Callback);
 
 		/**
 		* \breif Find matching route by given url.

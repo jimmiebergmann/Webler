@@ -215,7 +215,7 @@ namespace Webler
 		{
 			// Route is invalid, not matching. 404 error.
 			WEBLER_LOG(Log::Info, "404: Invalid path: " << testPath);
-			return 0;
+			///return 0;
 		}
 
 		// Join thread before closing.

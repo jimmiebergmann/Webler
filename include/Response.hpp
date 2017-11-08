@@ -40,9 +40,9 @@ namespace Webler
 
 	public:
 
-		Http::eCode GetCode() const;
+		const std::string & GetCode() const;
 
-		void SetCode(const Http::eCode p_Code);
+		void SetCode(const std::string & p_Code);
 
 		Response & operator << (const std::string & p_String);
 		Response & operator << (const int & p_Integer);
@@ -78,7 +78,7 @@ namespace Webler
 
 
 
-		Http::eCode		m_Code;
+		std::string		m_Code;
 		std::string		m_Response;
 
 	};

@@ -28,10 +28,11 @@ SOFTWARE.
 #include <Webler.hpp>
 #include <map>
 #include <set>
+#include <list>
 #include <sstream>
 
 #define ROUTER_IMP reinterpret_cast<Webler::RouterImp*>(this->m_pImp)
-static const std::string g_MethodStrings[2] = {"Get", "Post"};
+
 
 namespace Webler
 {
@@ -41,24 +42,26 @@ namespace Webler
 
 
 	// Router node struct
+	struct FinalRouteNode
+	{
+		Router::CallbackFunction Callback;
+		unsigned int MaxExecutionTime;
+	};
+
 	struct RouterNode
 	{
-		enum eType
-		{
-			File,
-			Directory
-		};
-
-		RouterNode(const eType p_Type) :
-			Type(p_Type),
-			IsWildcard(false)
+		RouterNode() :
+			pParent(nullptr),
+			pWildcardChild(nullptr),
+			pFinalNode(nullptr)
 		{
 
 		}
 
 		std::map<std::string, RouterNode *>	Childs;
-		eType								Type;
-		bool								IsWildcard;
+		RouterNode *						pParent;
+		std::string *						pWildcardChild;
+		FinalRouteNode *					pFinalNode;
 	};
 
 
@@ -74,8 +77,7 @@ namespace Webler
 			Post
 		};
 
-		RouterImp() :
-			m_StartNode(RouterNode::Directory)
+		RouterImp()
 		{
 
 		}
@@ -85,11 +87,11 @@ namespace Webler
 
 		}
 
-		Router::Route & DoRouting(const eMethod p_Method, const std::string & p_Path, Router::CallbackFunction p_Callback)
+		Router::Route & Add(const std::string & p_Method, const std::string & p_Path, Router::CallbackFunction p_Callback)
 		{
 			std::stringstream pathStream(p_Path);
 			std::string segment;
-			std::vector<std::string> seglist;
+			std::list<std::string> seglist;
 			std::set<std::string> wildcards;
 
 			while (std::getline(pathStream, segment, '/'))
@@ -109,25 +111,25 @@ namespace Webler
 					{
 						if (wildcardStart != 0)
 						{
-							WEBLER_LOG(Log::Error, "Invalid characters before wildcard start. Method: " << g_MethodStrings[p_Method] << ". Path: " << p_Path);
+							WEBLER_LOG(Log::Error, "Invalid characters before wildcard start. Method: " << p_Method << ". Path: " << p_Path);
 							throw std::runtime_error("Wildcard not starting after \"/\".");
 						}
 
 						auto wildcardEnd = segment.find('}');
 						if (wildcardStart == std::string::npos)
 						{
-							WEBLER_LOG(Log::Error, "Wildcard is not ending. Method: " << g_MethodStrings[p_Method] << ". Path: " << p_Path);
+							WEBLER_LOG(Log::Error, "Wildcard is not ending. Method: " << p_Method << ". Path: " << p_Path);
 							throw std::runtime_error("Wildcard is not ending.");
 						}
 						if (wildcardEnd != segment.size() - 1)
 						{
-							WEBLER_LOG(Log::Error, "Invalid characters after wildcard end. Method: " << g_MethodStrings[p_Method] << ". Path: " << p_Path);
+							WEBLER_LOG(Log::Error, "Invalid characters after wildcard end. Method: " << p_Method << ". Path: " << p_Path);
 							throw std::runtime_error("Invalid characters after wildcard end.");
 						}
 						const std::string wildcard = segment.substr(1, segment.size() - 2);
 						if (wildcards.find(wildcard) != wildcards.end())
 						{
-							WEBLER_LOG(Log::Error, "Wildcard name \"" << wildcard << "\" is routed multiple times. Method: " << g_MethodStrings[p_Method] << ". Path: " << p_Path);
+							WEBLER_LOG(Log::Error, "Wildcard name \"" << wildcard << "\" is routed multiple times. Method: " << p_Method << ". Path: " << p_Path);
 							throw std::runtime_error("Wildcard name \"" + wildcard + "\" is routed multiple times");
 						}
 						wildcards.insert(wildcard);
@@ -154,10 +156,25 @@ namespace Webler
 			}
 
 
+			// Go through the segment list and create routing.
+			for (auto it = seglist.begin(); it != seglist.end(); it++)
+			{
+
+			}
+
+
+
 			return Router::InvalidRoute;
 		}
 
-		RouterNode m_StartNode;
+
+		Router::Route & Find(const std::string & p_Path, std::vector<std::string> & p_Wildcards)
+		{
+			return Router::InvalidRoute;
+		}
+
+
+		RouterNode m_StartNode[2];
 
 	};
 
@@ -168,19 +185,14 @@ namespace Webler
 		return *this;
 	}
 
-	Router::Route & Router::Get(const std::string & p_Route, CallbackFunction p_Callback)
+	Router::Route & Router::Add(const std::string & p_Method, const std::string & p_Path, CallbackFunction p_Callback)
 	{
-		return ROUTER_IMP->DoRouting(RouterImp::Get, p_Route, p_Callback);
-	}
-
-	Router::Route & Router::Post(const std::string & p_Route, CallbackFunction p_Callback)
-	{
-		return ROUTER_IMP->DoRouting(RouterImp::Post, p_Route, p_Callback);
+		return ROUTER_IMP->Add(p_Method, p_Path, p_Callback);
 	}
 
 	Router::Route & Router::Find(const std::string & p_Path, std::vector<std::string> & p_Wildcards) const
 	{
-		return Router::InvalidRoute;
+		return ROUTER_IMP->Find(p_Path, p_Wildcards);
 	}
 
 	Router::Router() :

@@ -32,12 +32,12 @@ namespace Webler
 
 
 
-	Http::eCode Response::GetCode() const
+	const std::string & Response::GetCode() const
 	{
 		return m_Code;
 	}
 
-	void Response::SetCode(const Http::eCode p_Code)
+	void Response::SetCode(const std::string & p_Code)
 	{
 		m_Code = p_Code;
 	}
