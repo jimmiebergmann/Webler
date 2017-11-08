@@ -32,18 +32,20 @@ SOFTWARE.
 namespace Webler
 {
 
+	class Daemon; //< Forward declaration
+
 	class Request
 	{
 
 	public:
 
 		void SetRouteParameter(const std::string p_Parameter, const std::string p_Value);
-		const std::string & GetRouteParameter(const std::string p_Parameter) const;
-		const std::string & GetHeaderField(const std::string p_Field) const;
+		const std::string & GetWildcard(const std::string & p_Name = "") const;
+		const std::string & GetHeaderField(const std::string & p_Field) const;
 
 	private:
 
-		class Server; //< Forward declaration
+		friend class Daemon;
 
 		/**
 		* \breif Default constructor
@@ -61,7 +63,7 @@ namespace Webler
 		* \breif Initialization constructor
 		*
 		*/
-		Request(Server * p_Server);
+		Request(Daemon * p_pDaemon);
 
 		/**
 		* \breif Destructor
@@ -71,7 +73,7 @@ namespace Webler
 
 
 
-		std::map<std::string, std::string> m_RouteParamters;
+		std::map<std::string, std::string> m_RouteWildcards;
 		std::map<std::string, std::string> m_HeaderFields;
 
 	};

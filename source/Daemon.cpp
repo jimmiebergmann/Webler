@@ -25,6 +25,7 @@ SOFTWARE.
 */
 
 #include <Daemon.hpp>
+#include <Utility/Semaphore.hpp>
 #include <Log.hpp>
 #include <iostream>
 #include <winsock2.h>
@@ -34,6 +35,9 @@ SOFTWARE.
 
 namespace Webler
 {
+
+	// Forward declarations
+	class Daemon;
 
 	// Socket handle
 	namespace Socket
@@ -48,7 +52,8 @@ namespace Webler
 
 	public:
 
-		DaemonImp()
+		DaemonImp(Daemon * p_pDaemon) :
+			m_pDaemon(p_pDaemon)
 		{
 
 		}
@@ -98,7 +103,6 @@ namespace Webler
 				NULL);
 
 			// I read the client socket sent me by the parent process
-
 			ReadFile(hPipe, &socketHandle, sizeof(socketHandle), &dwBytes, NULL);
 			if (socketHandle == 0)
 			{
@@ -125,6 +129,13 @@ namespace Webler
 			*/
 		}
 
+		bool ProcessRequest(Request & p_Request, Response & p_Response)
+		{
+			
+			return true;
+		}
+
+		Daemon * m_pDaemon;
 		Socket::Handle m_SocketHandle;
 
 	};
@@ -133,7 +144,7 @@ namespace Webler
 
 	// Public daemon class
 	Daemon::Daemon() :
-		m_pImp(reinterpret_cast<void *>(new DaemonImp))
+		m_pImp(reinterpret_cast<void *>(new DaemonImp(this)))
 	{
 
 	}
@@ -148,6 +159,7 @@ namespace Webler
 
 	int Daemon::Boot(int p_ArgumentCount, char ** p_ppArgumentValues, Shared * p_pShared)
 	{
+
 		// Load log
 		const std::string logPath = GetProgramDirectory() + "/daemons.log";
 		Log * pLog = new Log(logPath);
@@ -158,14 +170,56 @@ namespace Webler
 		}
 		pLog->m_Imp.SetCurrentLog(pLog);
 
-		// Connec to host process
+#ifndef WEBLER_ROUTING_DEBUG
+		// Connect to host process and communicate in order to receive the socket.
 		const std::string pipeName = p_ppArgumentValues[2];
 		if (DAEMON_IMP->ConnectToHost(pipeName) == false)
 		{
 			return 0;
 		}
+#endif
 
-		Sleep(1000 * 10);
+		// Start a new thread to start loading the routing.
+		Utility::Semaphore routingSemaphore;
+		Router router;
+		std::thread routingThread([this, &routingSemaphore, &router]()
+		{
+			// Create router
+			
+			Start(router);
+
+			routingSemaphore.Notify();
+		});
+
+#ifndef WEBLER_ROUTING_DEBUG
+
+		// Get request
+		Request request(reinterpret_cast<Daemon *>(this));
+		Response response(reinterpret_cast<Daemon *>(this));
+
+		if (DAEMON_IMP->ProcessRequest(request, response) == false)
+		{
+			return 0;
+		}
+
+#endif
+
+		// Wait until the routing is loaded, 5 seconds.
+		routingSemaphore.WaitFor(1000 * 5);
+
+		// Get matching routing.
+		static const std::string testPath = "/Customer/{name}/aniamls";
+		std::vector<std::string> wildcards;
+		const Router::Route & route = router.Find(testPath, wildcards);
+		if (&route == &Router::InvalidRoute)
+		{
+			// Route is invalid, not matching. 404 error.
+			WEBLER_LOG(Log::Info, "404: Invalid path: " << testPath);
+			return 0;
+		}
+
+		// Join thread before closing.
+		routingThread.join();
 
 		return 0;
 	}

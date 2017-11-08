@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <mutex>
 #include <condition_variable>
+#include <chrono>
 
 namespace Webler
 {
@@ -47,6 +48,8 @@ namespace Webler
 			void Wait();
 
 			bool TryWait();
+
+			bool WaitFor(const unsigned int p_Milliseconds);
 
 		private:
 

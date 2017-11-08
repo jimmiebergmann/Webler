@@ -16,9 +16,9 @@ class DaemonImp : public Webler::Daemon
 
 	virtual void Start(Webler::Router & p_Router)
 	{
-		p_Router.Get("/Customer/{name}", [](Webler::Request & req, Webler::Response & resp)
+		p_Router.Get("/test/{}"/*"/Customer/{name/animals"*/, [](Webler::Request & req, Webler::Response & resp)
 		{
-			if (req.GetRouteParameter("name") == "jimmie")
+			if (req.GetWildcard("name") == "jimmie")
 			{
 				resp << "Jimmie loves cats!";
 				return;
@@ -28,7 +28,7 @@ class DaemonImp : public Webler::Daemon
 
 		p_Router.Post("/Customer/{name}", [](Webler::Request & req, Webler::Response & resp)
 		{
-			auto name = req.GetRouteParameter("name");
+			auto name = req.GetWildcard("name");
 			resp << "Created customer \"" << name << "\"";
 			auto loves = req.GetHeaderField("loves");
 			if (loves.length())

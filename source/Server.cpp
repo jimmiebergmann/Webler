@@ -221,6 +221,7 @@ namespace Webler
 					return;
 				}
 
+				std::cout << "Writing to pipe" << std::endl;
 
 				// I write the socket descriptor to the named pipe
 				if (WriteFile(hPipe, &p_SocketHandle, sizeof(p_SocketHandle), &dwBytes, NULL) == 0)
@@ -228,6 +229,8 @@ namespace Webler
 					WEBLER_LOG(Log::Error, "Failed to write socket handle to shared memory. " << static_cast<int>(GetLastError()) );
 					return;
 				}
+
+				std::cout << "Writing done." << std::endl;
 
 				// I write the protocol information structure to the named pipe
 				/*if (WriteFile(hPipe, &protInfo, sizeof(protInfo), &dwBytes, NULL) == 0)

@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <Response.hpp>
 #include <Request.hpp>
+#include <vector>
 #include <functional>
 
 /**
@@ -62,7 +63,7 @@ namespace Webler
 		};
 
 
-		friend class Server;
+		friend class Daemon;
 
 		typedef std::function<void(Request &, Response &)> CallbackFunction;
 
@@ -88,10 +89,26 @@ namespace Webler
 		*/
 		Router::Route & Post(const std::string & p_Route, CallbackFunction p_Callback);
 
+		/**
+		* \breif Find matching route by given url.
+		*
+		*/
+		Router::Route & Find(const std::string & p_Path, std::vector<std::string> & p_Wildcards) const;
+
+		/**
+		* \breif Invalid route to compare result from Get function with.
+		*
+		*/
+		static Router::Route InvalidRoute;
+		
+
 	private:
 
-		Router(Server * p_Server);
+		Router();
+
 		~Router();
+
+		void * m_pImp; //< Implementation
 
 	};
 

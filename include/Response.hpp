@@ -32,6 +32,9 @@ SOFTWARE.
 namespace Webler
 {
 
+	class Daemon; //< Forward declaration
+
+
 	class Response
 	{
 
@@ -47,7 +50,7 @@ namespace Webler
 
 	private:
 
-		class Server; //< Forward declaration
+		friend class Daemon;
 
 		/**
 		* \breif Default constructor
@@ -65,7 +68,7 @@ namespace Webler
 		* \breif Initialization constructor
 		*
 		*/
-		Response(Server * p_Server);
+		Response(Daemon * p_pDaemon);
 
 		/**
 		* \breif Destructor

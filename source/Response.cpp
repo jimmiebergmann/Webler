@@ -64,7 +64,7 @@ namespace Webler
 	{
 	}
 
-	Response::Response(Server * p_Server)
+	Response::Response(Daemon * p_pDaemon)
 	{
 	}
 

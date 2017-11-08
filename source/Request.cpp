@@ -5,13 +5,13 @@ namespace Webler
 
 	void Request::SetRouteParameter(const std::string p_Parameter, const std::string p_Value)
 	{
-		m_RouteParamters[p_Parameter] = p_Value;
+		m_RouteWildcards[p_Parameter] = p_Value;
 	}
 
-	const std::string & Request::GetRouteParameter(const std::string p_Parameter) const
+	const std::string & Request::GetWildcard(const std::string & p_Name) const
 	{
-		auto it = m_RouteParamters.find(p_Parameter);
-		if (it != m_RouteParamters.end())
+		auto it = m_RouteWildcards.find(p_Name);
+		if (it != m_RouteWildcards.end())
 		{
 			return it->second;
 		}
@@ -19,7 +19,7 @@ namespace Webler
 		return "";
 	}
 
-	const std::string & Request::GetHeaderField(const std::string p_Field) const
+	const std::string & Request::GetHeaderField(const std::string & p_Field) const
 	{
 		auto it = m_HeaderFields.find(p_Field);
 		if (it != m_HeaderFields.end())
@@ -38,7 +38,7 @@ namespace Webler
 	{
 	}
 
-	Request::Request(Server * p_Server)
+	Request::Request(Daemon * p_pDaemon)
 	{
 	}
 

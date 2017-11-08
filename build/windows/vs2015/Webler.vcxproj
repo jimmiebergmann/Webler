@@ -98,6 +98,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WEBLER_ROUTING_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -105,6 +106,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -136,7 +138,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\source\Daemon.cpp" />
     <ClCompile Include="..\..\..\source\Log.cpp" />
-    <ClCompile Include="..\..\..\source\Process.cpp" />
     <ClCompile Include="..\..\..\source\Json.cpp" />
     <ClCompile Include="..\..\..\source\Request.cpp" />
     <ClCompile Include="..\..\..\source\Response.cpp" />
@@ -150,7 +151,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\include\Daemon.hpp" />
     <ClInclude Include="..\..\..\include\Log.hpp" />
-    <ClInclude Include="..\..\..\include\Process.hpp" />
     <ClInclude Include="..\..\..\include\Http.hpp" />
     <ClInclude Include="..\..\..\include\Json.hpp" />
     <ClInclude Include="..\..\..\include\Request.hpp" />

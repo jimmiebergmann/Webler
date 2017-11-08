@@ -26,36 +26,175 @@ SOFTWARE.
 
 #include <Router.hpp>
 #include <Webler.hpp>
+#include <map>
+#include <set>
+#include <sstream>
 
-// TEMP
-static Webler::Router::Route g_Route;
+#define ROUTER_IMP reinterpret_cast<Webler::RouterImp*>(this->m_pImp)
+static const std::string g_MethodStrings[2] = {"Get", "Post"};
 
 namespace Webler
 {
 
-	Router::Router(Server * p_Server)
+	// Static declarations
+	Router::Route Router::InvalidRoute;
+
+
+	// Router node struct
+	struct RouterNode
+	{
+		enum eType
+		{
+			File,
+			Directory
+		};
+
+		RouterNode(const eType p_Type) :
+			Type(p_Type),
+			IsWildcard(false)
+		{
+
+		}
+
+		std::map<std::string, RouterNode *>	Childs;
+		eType								Type;
+		bool								IsWildcard;
+	};
+
+
+	// Router implementation
+	class RouterImp
+	{
+
+	public:
+
+		enum eMethod
+		{
+			Get,
+			Post
+		};
+
+		RouterImp() :
+			m_StartNode(RouterNode::Directory)
+		{
+
+		}
+
+		~RouterImp()
+		{
+
+		}
+
+		Router::Route & DoRouting(const eMethod p_Method, const std::string & p_Path, Router::CallbackFunction p_Callback)
+		{
+			std::stringstream pathStream(p_Path);
+			std::string segment;
+			std::vector<std::string> seglist;
+			std::set<std::string> wildcards;
+
+			while (std::getline(pathStream, segment, '/'))
+			{
+				// Is the last part empty?
+				if (segment.size() == 0 && pathStream.eof() == false)
+				{
+					seglist.push_back("/");
+					continue;
+				}
+
+				if (segment.size())
+				{
+					// Handle wildcard
+					auto wildcardStart = segment.find('{');
+					if (wildcardStart != std::string::npos)
+					{
+						if (wildcardStart != 0)
+						{
+							WEBLER_LOG(Log::Error, "Invalid characters before wildcard start. Method: " << g_MethodStrings[p_Method] << ". Path: " << p_Path);
+							throw std::runtime_error("Wildcard not starting after \"/\".");
+						}
+
+						auto wildcardEnd = segment.find('}');
+						if (wildcardStart == std::string::npos)
+						{
+							WEBLER_LOG(Log::Error, "Wildcard is not ending. Method: " << g_MethodStrings[p_Method] << ". Path: " << p_Path);
+							throw std::runtime_error("Wildcard is not ending.");
+						}
+						if (wildcardEnd != segment.size() - 1)
+						{
+							WEBLER_LOG(Log::Error, "Invalid characters after wildcard end. Method: " << g_MethodStrings[p_Method] << ". Path: " << p_Path);
+							throw std::runtime_error("Invalid characters after wildcard end.");
+						}
+						const std::string wildcard = segment.substr(1, segment.size() - 2);
+						if (wildcards.find(wildcard) != wildcards.end())
+						{
+							WEBLER_LOG(Log::Error, "Wildcard name \"" << wildcard << "\" is routed multiple times. Method: " << g_MethodStrings[p_Method] << ". Path: " << p_Path);
+							throw std::runtime_error("Wildcard name \"" + wildcard + "\" is routed multiple times");
+						}
+						wildcards.insert(wildcard);
+
+						seglist.push_back(wildcard);
+
+						int a = 0;
+					}
+					else
+					{
+						seglist.push_back(segment);
+					}
+
+					// Do we have more to load?
+					if (pathStream.eof() == false)
+					{
+						seglist.push_back("/");
+						continue;
+					}
+					
+					// End of file? Done?
+					break;
+				}
+			}
+
+
+			return Router::InvalidRoute;
+		}
+
+		RouterNode m_StartNode;
+
+	};
+
+
+	// Public router class
+	Router::Route & Router::Route::MaxExecutionTime(const unsigned int p_Seconds)
+	{
+		return *this;
+	}
+
+	Router::Route & Router::Get(const std::string & p_Route, CallbackFunction p_Callback)
+	{
+		return ROUTER_IMP->DoRouting(RouterImp::Get, p_Route, p_Callback);
+	}
+
+	Router::Route & Router::Post(const std::string & p_Route, CallbackFunction p_Callback)
+	{
+		return ROUTER_IMP->DoRouting(RouterImp::Post, p_Route, p_Callback);
+	}
+
+	Router::Route & Router::Find(const std::string & p_Path, std::vector<std::string> & p_Wildcards) const
+	{
+		return Router::InvalidRoute;
+	}
+
+	Router::Router() :
+		m_pImp(reinterpret_cast<void *>(new RouterImp))
 	{
 
 	}
 
 	Router::~Router()
 	{
-
-	}
-
-	Router::Route & Router::Route::MaxExecutionTime(const unsigned int p_Seconds)
-	{
-		return g_Route;
-	}
-
-	Router::Route & Router::Get(const std::string & p_Route, CallbackFunction p_Callback)
-	{
-		return g_Route;
-	}
-
-	Router::Route & Router::Post(const std::string & p_Route, CallbackFunction p_Callback)
-	{
-		return g_Route;
+		if (m_pImp)
+		{
+			delete m_pImp;
+		}
 	}
 
 }

@@ -67,6 +67,22 @@ namespace Webler
 			return false;
 		}
 
+		bool Semaphore::WaitFor(const unsigned int p_Milliseconds)
+		{
+			std::unique_lock<decltype(m_Mutex)> lock(m_Mutex);
+			if (!m_Count)
+			{
+				if (m_Condition.wait_for(lock, std::chrono::milliseconds(p_Milliseconds)) == std::cv_status::no_timeout)
+				{
+					--m_Count;
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+
 	}
 
 }
