@@ -40,15 +40,31 @@ namespace Webler
 
 	class Server;
 
+	/**
+	* \breif Router classed used for routing paths.
+	*
+	*/
 	class Router
 	{
 
 	public:
 
+		friend class Server;
+		friend class Daemon;
+
+		/**
+		* \breif Single route class.
+		*
+		*/
 		class Route
 		{
 
 		public:
+
+			friend class Server;
+			friend class Daemon;
+			friend class Router;
+			friend class RouterImp;
 
 			/**
 			* \breif Set maximum execution time of route.
@@ -60,11 +76,33 @@ namespace Webler
 			*/
 			Route & MaxExecutionTime(const unsigned int p_Seconds);
 
+		private:
+
+			/**
+			* \breif Constructor.
+			*
+			*/
+			Route();
+
+			/**
+			* \breif Copy constructor.
+			*
+			*/
+			Route(const Route & p_Route);
+
+			/**
+			* \breif Destructor.
+			*
+			*/
+			~Route();
+
+			void * m_pImp;  //< Implementation
 		};
 
-
-		friend class Daemon;
-
+		/**
+		* \breif Routed callback function.
+		*
+		*/
 		typedef std::function<void(Request &, Response &)> CallbackFunction;
 
 		/**
@@ -89,13 +127,26 @@ namespace Webler
 		* \breif Invalid route to compare result from Get function with.
 		*
 		*/
-		static Router::Route InvalidRoute;
+		Router::Route & InvalidRoute() const;
 		
-
 	private:
 
+		/**
+		* \breif Constructor.
+		*
+		*/
 		Router();
 
+		/**
+		* \breif Copy constructor.
+		*
+		*/
+		Router(const Router & p_Router);
+
+		/**
+		* \breif Destructor.
+		*
+		*/
 		~Router();
 
 		void * m_pImp; //< Implementation

@@ -30,38 +30,49 @@ SOFTWARE.
 #include <set>
 #include <list>
 #include <sstream>
+#include <algorithm>
 
 #define ROUTER_IMP reinterpret_cast<Webler::RouterImp*>(this->m_pImp)
-
+#define ROUTE_IMP reinterpret_cast<Webler::RouteImp*>(this->m_pImp)
+#define ROUTE_IMP_FROM(Route) reinterpret_cast<Webler::RouteImp*>(Route->m_pImp)
 
 namespace Webler
 {
 
-	// Static declarations
-	Router::Route Router::InvalidRoute;
+	// Route implementation
+	class RouteImp
+	{
+
+	public:
+
+		Router::CallbackFunction Callback;
+		unsigned int MaxExecutionTime;
+
+	};
 
 
 	// Router node struct
-	struct FinalRouteNode
-	{
-		Router::CallbackFunction Callback;
-		unsigned int MaxExecutionTime;
-	};
-
 	struct RouterNode
 	{
-		RouterNode() :
-			pParent(nullptr),
-			pWildcardChild(nullptr),
-			pFinalNode(nullptr)
+		RouterNode(	RouterNode * p_pParent = nullptr) :
+			pParent(p_pParent),
+			pWildcard(nullptr),
+			pRoute(nullptr)
 		{
+		}
 
+		~RouterNode()
+		{
+			if (pWildcard)
+			{
+				delete pWildcard;
+			}
 		}
 
 		std::map<std::string, RouterNode *>	Childs;
 		RouterNode *						pParent;
-		std::string *						pWildcardChild;
-		FinalRouteNode *					pFinalNode;
+		std::string *						pWildcard;
+		Router::Route *						pRoute;
 	};
 
 
@@ -84,29 +95,51 @@ namespace Webler
 
 		~RouterImp()
 		{
-
+			// Clear up all m_RouterNodes...
 		}
 
 		Router::Route & Add(const std::string & p_Method, const std::string & p_Path, Router::CallbackFunction p_Callback)
 		{
+			struct PathPart
+			{
+				PathPart(	const std::string & p_Part,
+							const bool p_IsWildcard = false) :
+					Part(new std::string(p_Part)),
+					IsWildcard(p_IsWildcard)
+				{
+				}
+
+				~PathPart()
+				{
+					delete Part;
+				}
+
+				std::string * Part;
+				bool		IsWildcard;
+
+			};
+
+			Router::Route * pRoute = nullptr;
+
+			// Parse path
 			std::stringstream pathStream(p_Path);
-			std::string segment;
-			std::list<std::string> seglist;
+			std::string pathPart;
+			std::list<std::unique_ptr<PathPart>> partList;
 			std::set<std::string> wildcards;
 
-			while (std::getline(pathStream, segment, '/'))
+			while (std::getline(pathStream, pathPart, '/'))
 			{
-				// Is the last part empty?
-				if (segment.size() == 0 && pathStream.eof() == false)
+				// Is the current part empty?
+				if (pathPart.size() == 0 && pathStream.eof() == false)
 				{
-					seglist.push_back("/");
+					partList.push_back(std::unique_ptr<PathPart>( new PathPart("/")));
 					continue;
 				}
 
-				if (segment.size())
+				if (pathPart.size())
 				{
 					// Handle wildcard
-					auto wildcardStart = segment.find('{');
+					auto wildcardStart = pathPart.find('{');
 					if (wildcardStart != std::string::npos)
 					{
 						if (wildcardStart != 0)
@@ -115,18 +148,18 @@ namespace Webler
 							throw std::runtime_error("Wildcard not starting after \"/\".");
 						}
 
-						auto wildcardEnd = segment.find('}');
+						auto wildcardEnd = pathPart.find('}');
 						if (wildcardStart == std::string::npos)
 						{
 							WEBLER_LOG(Log::Error, "Wildcard is not ending. Method: " << p_Method << ". Path: " << p_Path);
 							throw std::runtime_error("Wildcard is not ending.");
 						}
-						if (wildcardEnd != segment.size() - 1)
+						if (wildcardEnd != pathPart.size() - 1)
 						{
 							WEBLER_LOG(Log::Error, "Invalid characters after wildcard end. Method: " << p_Method << ". Path: " << p_Path);
 							throw std::runtime_error("Invalid characters after wildcard end.");
 						}
-						const std::string wildcard = segment.substr(1, segment.size() - 2);
+						const std::string wildcard = pathPart.substr(1, pathPart.size() - 2);
 						if (wildcards.find(wildcard) != wildcards.end())
 						{
 							WEBLER_LOG(Log::Error, "Wildcard name \"" << wildcard << "\" is routed multiple times. Method: " << p_Method << ". Path: " << p_Path);
@@ -134,19 +167,19 @@ namespace Webler
 						}
 						wildcards.insert(wildcard);
 
-						seglist.push_back(wildcard);
+						partList.push_back(std::unique_ptr<PathPart>(new PathPart(wildcard, true)));
 
 						int a = 0;
 					}
 					else
 					{
-						seglist.push_back(segment);
+						partList.push_back(std::unique_ptr<PathPart>(new PathPart(pathPart)));
 					}
 
 					// Do we have more to load?
 					if (pathStream.eof() == false)
 					{
-						seglist.push_back("/");
+						partList.push_back(std::unique_ptr<PathPart>(new PathPart("/")));
 						continue;
 					}
 					
@@ -156,35 +189,176 @@ namespace Webler
 			}
 
 
-			// Go through the segment list and create routing.
-			for (auto it = seglist.begin(); it != seglist.end(); it++)
+			// Check if method exists
+			std::string method = p_Method;
+			std::transform(method.begin(), method.end(), method.begin(), ::tolower);
+			auto routerNodeIt = m_RouterNodes.find(method);
+			RouterNode * pCurrentRouterNode = nullptr;
+			if (routerNodeIt == m_RouterNodes.end())
 			{
-
+				pCurrentRouterNode = new RouterNode;
+				m_RouterNodes[method] = pCurrentRouterNode;
+			}
+			else
+			{
+				pCurrentRouterNode = routerNodeIt->second;
 			}
 
+			// Go through the segment list and create routing.
+			
+			if (partList.size() == 0)
+			{
+				// Is the full path already routed?
+				if (pCurrentRouterNode->pRoute)
+				{
+					WEBLER_LOG(Log::Error, "Path is already routed: Method: " << p_Method << ". Path: " << p_Path);
+					throw std::runtime_error("Path is already routed.");
+				}
 
+				pRoute = new Router::Route;
+				ROUTE_IMP_FROM(pRoute)->MaxExecutionTime = 30;
+				ROUTE_IMP_FROM(pRoute)->Callback = p_Callback;
+				pCurrentRouterNode->pRoute = pRoute;
+			}
 
-			return Router::InvalidRoute;
+			for (auto it = partList.begin(); it != partList.end(); it++)
+			{
+				const std::string & part = *(*it)->Part;
+
+				// Child already exists?
+				auto childIt = pCurrentRouterNode->Childs.find(part);
+				if (childIt != pCurrentRouterNode->Childs.end())
+				{
+					auto itCopy = it;
+					if ((++itCopy) == partList.end())
+					{
+						WEBLER_LOG(Log::Error, "Path is already routed. Method: " << p_Method << ". Path: " << p_Path);
+						throw std::runtime_error("Path is already routed.");
+					}
+
+					pCurrentRouterNode = childIt->second;
+					continue;
+				}
+
+				// Is wildcard?
+				if ((*it)->IsWildcard)
+				{
+					// Wildcard already exists for this node?
+					if (pCurrentRouterNode->pWildcard)
+					{
+						if (*pCurrentRouterNode->pWildcard != part)
+						{
+							WEBLER_LOG(Log::Error, "Wilcard name collision in route: \"" << part << "\". Method: " << p_Method << ". Path: " << p_Path);
+							throw std::runtime_error("Wilcard name collision in route : \"" + part);
+						}
+					}
+					else
+					{
+						pCurrentRouterNode->pWildcard = new std::string(part);
+					}
+				}
+				else
+				{
+					// New child.
+					RouterNode * pNewRouterNode = new RouterNode(pCurrentRouterNode);
+					pCurrentRouterNode->Childs[part] = pNewRouterNode;
+					pCurrentRouterNode = pNewRouterNode;
+				}
+				
+				// Last part in list?
+				auto itCopy = it;
+				if ((++itCopy) == partList.end())
+				{
+					// Is the full path already routed?
+					if (pCurrentRouterNode->pRoute)
+					{
+						WEBLER_LOG(Log::Error, "Path is already routed: Method: " << p_Method << ". Path: " << p_Path);
+						throw std::runtime_error("Path is already routed.");
+					}
+
+					pRoute = new Router::Route;
+					ROUTE_IMP_FROM(pRoute)->MaxExecutionTime = 30;
+					ROUTE_IMP_FROM(pRoute)->Callback = p_Callback;
+					pCurrentRouterNode->pRoute = pRoute;
+				}
+			}
+
+			// Is route nullptr for some reason?
+			if (pRoute == nullptr)
+			{
+				WEBLER_LOG(Log::Error, "Failed to each end of route because of unknown reason: Method: " << p_Method << ". Path: " << p_Path);
+				throw std::runtime_error("Failed to each end of route because of unknown reason.");
+			}
+
+			return *pRoute;
 		}
-
 
 		Router::Route & Find(const std::string & p_Path, std::vector<std::string> & p_Wildcards)
 		{
-			return Router::InvalidRoute;
+			p_Wildcards.clear();
+
+			// Split path in parts.
+			std::stringstream pathStream(p_Path);
+			std::string pathPart;
+			std::list<std::string> partList;
+
+			while (std::getline(pathStream, pathPart, '/'))
+			{
+				// Is the current part empty?
+				if (pathPart.size() == 0 && pathStream.eof() == false)
+				{
+					partList.push_back("/");
+					continue;
+				}
+				if (pathPart.size())
+				{
+					partList.push_back(pathPart);
+					if (pathStream.eof() == false)
+					{
+						partList.push_back("/");
+					}
+				}
+			}
+
+			return m_InvalidRoute;
 		}
 
-
-		RouterNode m_StartNode[2];
+		// Variables
+		typedef std::map<std::string, RouterNode*> RouterNodeMap;
+		RouterNodeMap m_RouterNodes;
+		Router::Route m_InvalidRoute;
 
 	};
 
 
-	// Public router class
+	// Public route class
 	Router::Route & Router::Route::MaxExecutionTime(const unsigned int p_Seconds)
 	{
+		ROUTE_IMP->MaxExecutionTime = p_Seconds;
 		return *this;
 	}
 
+	Router::Route::Route() :
+		m_pImp(reinterpret_cast<void *>(new RouteImp))
+	{
+
+	}
+
+	Router::Route::Route(const Route & p_Route)
+	{
+		throw std::runtime_error("Not allowed to copy route class.");
+	}
+
+	Router::Route::~Route()
+	{
+		if (m_pImp)
+		{
+			delete m_pImp;
+		}
+	}
+
+
+	// Public router class
 	Router::Route & Router::Add(const std::string & p_Method, const std::string & p_Path, CallbackFunction p_Callback)
 	{
 		return ROUTER_IMP->Add(p_Method, p_Path, p_Callback);
@@ -195,10 +369,19 @@ namespace Webler
 		return ROUTER_IMP->Find(p_Path, p_Wildcards);
 	}
 
+	Router::Route & Router::InvalidRoute() const
+	{
+		return ROUTER_IMP->m_InvalidRoute;
+	}
+
 	Router::Router() :
 		m_pImp(reinterpret_cast<void *>(new RouterImp))
 	{
+	}
 
+	Router::Router(const Router & p_Router)
+	{
+		throw std::runtime_error("Not allowed to copy router class.");
 	}
 
 	Router::~Router()

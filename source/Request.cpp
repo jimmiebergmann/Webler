@@ -3,6 +3,8 @@
 namespace Webler
 {
 
+	static const std::string g_EmptyString = "";
+
 	void Request::SetRouteParameter(const std::string p_Parameter, const std::string p_Value)
 	{
 		m_RouteWildcards[p_Parameter] = p_Value;
@@ -16,7 +18,7 @@ namespace Webler
 			return it->second;
 		}
 
-		return "";
+		return g_EmptyString;
 	}
 
 	const std::string & Request::GetHeaderField(const std::string & p_Field) const
@@ -27,7 +29,7 @@ namespace Webler
 			return it->second;
 		}
 
-		return "";
+		return g_EmptyString;
 	}
 
 	Request::Request()
