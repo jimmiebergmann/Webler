@@ -16,7 +16,7 @@ class DaemonImp : public Webler::Daemon
 
 	virtual void Start(Webler::Router & p_Router)
 	{
-		p_Router.Add("GET", "/Customer/{name}/aniamls", [](Webler::Request & req, Webler::Response & resp)
+		p_Router.Add("GET", "/Customer/jimmie/animals", [](Webler::Request & req, Webler::Response & resp)
 		{
 			if (req.GetWildcard("name") == "jimmie")
 			{
@@ -26,7 +26,7 @@ class DaemonImp : public Webler::Daemon
 			resp << "Unkown name, try \"jimmie\".";
 		});
 
-		p_Router.Add("GET", "/Customer/{name}/cars", [](Webler::Request & req, Webler::Response & resp)
+		p_Router.Add("GET", "/Customer/{name}/animals", [](Webler::Request & req, Webler::Response & resp)
 		{
 			if (req.GetWildcard("name") == "jimmie")
 			{

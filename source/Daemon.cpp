@@ -208,9 +208,9 @@ namespace Webler
 		routingSemaphore.WaitFor(1000 * 5);
 
 		// Get matching routing.
-		static const std::string testPath = "/Customer/jimmie/aniamls";
-		std::vector<std::string> wildcards;
-		const Router::Route & route = router.Find(testPath, wildcards);
+		static const std::string testPath = "/Customer/jimmie/animals";
+		Router::Wildcards wildcards;
+		const Router::Route & route = router.Find("get", testPath, wildcards);
 		if (&route == &router.InvalidRoute())
 		{
 			// Route is invalid, not matching. 404 error.

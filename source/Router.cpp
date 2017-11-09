@@ -69,10 +69,11 @@ namespace Webler
 			}
 		}
 
-		std::map<std::string, RouterNode *>	Childs;
-		RouterNode *						pParent;
-		std::string *						pWildcard;
-		Router::Route *						pRoute;
+		typedef std::pair<std::string, RouterNode *> Wildcard;
+		std::map<std::string, RouterNode *>		Childs;
+		RouterNode *							pParent;
+		Wildcard *								pWildcard;
+		Router::Route *							pRoute;
 	};
 
 
@@ -223,14 +224,15 @@ namespace Webler
 
 			for (auto it = partList.begin(); it != partList.end(); it++)
 			{
+				auto itCopy = it;
+				const bool isLastPart = (++itCopy) == partList.end();
 				const std::string & part = *(*it)->Part;
 
 				// Child already exists?
 				auto childIt = pCurrentRouterNode->Childs.find(part);
 				if (childIt != pCurrentRouterNode->Childs.end())
 				{
-					auto itCopy = it;
-					if ((++itCopy) == partList.end())
+					if (isLastPart)
 					{
 						WEBLER_LOG(Log::Error, "Path is already routed. Method: " << p_Method << ". Path: " << p_Path);
 						throw std::runtime_error("Path is already routed.");
@@ -246,7 +248,7 @@ namespace Webler
 					// Wildcard already exists for this node?
 					if (pCurrentRouterNode->pWildcard)
 					{
-						if (*pCurrentRouterNode->pWildcard != part)
+						if (pCurrentRouterNode->pWildcard->first != part)
 						{
 							WEBLER_LOG(Log::Error, "Wilcard name collision in route: \"" << part << "\". Method: " << p_Method << ". Path: " << p_Path);
 							throw std::runtime_error("Wilcard name collision in route : \"" + part);
@@ -254,7 +256,9 @@ namespace Webler
 					}
 					else
 					{
-						pCurrentRouterNode->pWildcard = new std::string(part);
+						RouterNode * pNewRouterNode = new RouterNode(pCurrentRouterNode);
+						pCurrentRouterNode->pWildcard = new RouterNode::Wildcard(part, pNewRouterNode);
+						pCurrentRouterNode = pNewRouterNode;
 					}
 				}
 				else
@@ -266,8 +270,7 @@ namespace Webler
 				}
 				
 				// Last part in list?
-				auto itCopy = it;
-				if ((++itCopy) == partList.end())
+				if (isLastPart)
 				{
 					// Is the full path already routed?
 					if (pCurrentRouterNode->pRoute)
@@ -286,14 +289,14 @@ namespace Webler
 			// Is route nullptr for some reason?
 			if (pRoute == nullptr)
 			{
-				WEBLER_LOG(Log::Error, "Failed to each end of route because of unknown reason: Method: " << p_Method << ". Path: " << p_Path);
-				throw std::runtime_error("Failed to each end of route because of unknown reason.");
+				WEBLER_LOG(Log::Error, "Failed to reach end of route because of unknown reason: Method: " << p_Method << ". Path: " << p_Path);
+				throw std::runtime_error("Failed to reach end of route because of unknown reason.");
 			}
 
 			return *pRoute;
 		}
 
-		Router::Route & Find(const std::string & p_Path, std::vector<std::string> & p_Wildcards)
+		Router::Route & Find(const std::string & p_Method, const std::string & p_Path, Router::Wildcards & p_Wildcards)
 		{
 			p_Wildcards.clear();
 
@@ -320,6 +323,83 @@ namespace Webler
 				}
 			}
 
+			Router::Route * pRoute = &m_InvalidRoute;
+
+			// Find start node by method
+			std::string method = p_Method;
+			std::transform(method.begin(), method.end(), method.begin(), ::tolower);
+			auto methodIt = m_RouterNodes.find(method);
+			if (methodIt == m_RouterNodes.end())
+			{
+				return m_InvalidRoute;
+			}
+			auto pCurrentRouterNode = methodIt->second;
+
+			// No parts?
+			if (partList.size() == 0)
+			{
+				if (pCurrentRouterNode->pRoute == nullptr)
+				{
+					return m_InvalidRoute;
+				}
+				if (pCurrentRouterNode->pWildcard)
+				{
+					p_Wildcards[pCurrentRouterNode->pWildcard->first] = "";
+				}
+
+				return *pCurrentRouterNode->pRoute;
+			}
+
+
+			// Go through the routing.
+			for (auto it = partList.begin(); it != partList.end(); it++)
+			{
+				auto itCopy = it;
+				const bool isLastPart = (++itCopy) == partList.end();
+				const std::string & part = *it;
+				auto pWildcard = pCurrentRouterNode->pWildcard;
+
+				// Check if part exists in the route tree
+				auto routeNodeIt = pCurrentRouterNode->Childs.find(part);
+				RouterNode * pRouteNode = nullptr;
+				if (routeNodeIt == pCurrentRouterNode->Childs.end())
+				{
+					// Use wildcard if available, if the part can't be routed.
+					if (pWildcard)
+					{
+						p_Wildcards[pWildcard->first] = part;
+						pRouteNode = pWildcard->second;
+					}
+					else
+					{
+						// Failed to find wildcard.
+						return m_InvalidRoute;
+					}
+				}
+				else
+				{
+					pRouteNode = routeNodeIt->second;
+				}
+
+				// Check if last
+				if (isLastPart)
+				{
+					if (pRouteNode->pRoute)
+					{
+						// Found last route.
+						return *pRouteNode->pRoute;
+					}
+
+					return m_InvalidRoute;
+				}
+
+				// Check if not wildcard
+				pCurrentRouterNode = pRouteNode;
+			}
+
+			// Should never land here...
+			WEBLER_LOG(Log::Error, "Routing find loop broke for unknown reason: Method: " << p_Method << ". Path: " << p_Path);
+			throw std::runtime_error("Routing find loop broke for unknown reason");
 			return m_InvalidRoute;
 		}
 
@@ -364,9 +444,9 @@ namespace Webler
 		return ROUTER_IMP->Add(p_Method, p_Path, p_Callback);
 	}
 
-	Router::Route & Router::Find(const std::string & p_Path, std::vector<std::string> & p_Wildcards) const
+	Router::Route & Router::Find(const std::string & p_Method, const std::string & p_Path, Wildcards & p_Wildcards) const
 	{
-		return ROUTER_IMP->Find(p_Path, p_Wildcards);
+		return ROUTER_IMP->Find(p_Method, p_Path, p_Wildcards);
 	}
 
 	Router::Route & Router::InvalidRoute() const

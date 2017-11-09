@@ -28,7 +28,7 @@ SOFTWARE.
 
 #include <Response.hpp>
 #include <Request.hpp>
-#include <vector>
+#include <map>
 #include <functional>
 
 /**
@@ -104,6 +104,7 @@ namespace Webler
 		*
 		*/
 		typedef std::function<void(Request &, Response &)> CallbackFunction;
+		typedef std::map<std::string, std::string> Wildcards;
 
 		/**
 		* \breif Route path
@@ -121,7 +122,7 @@ namespace Webler
 		* \breif Find matching route by given url.
 		*
 		*/
-		Router::Route & Find(const std::string & p_Path, std::vector<std::string> & p_Wildcards) const;
+		Router::Route & Find(const std::string & p_Method, const std::string & p_Path, Wildcards & p_Wildcards) const;
 
 		/**
 		* \breif Invalid route to compare result from Get function with.
