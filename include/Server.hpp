@@ -28,7 +28,7 @@ SOFTWARE.
 
 #include <Request.hpp>
 #include <Response.hpp>
-#include <Shared.hpp>
+#include <Router.hpp>
 #include <Log.hpp>
 
 
@@ -47,7 +47,7 @@ namespace Webler
 	* \breif Web server main class.
 	*
 	*/
-	class Server : public Shared
+	class Server
 	{
 
 	public:
@@ -61,7 +61,7 @@ namespace Webler
 
 		public:
 
-			friend class Server; //< Forward declaration and friendship
+			friend class ServerImp; //< Forward declaration and friendship
 
 			/**
 			* \breif Destructor
@@ -132,12 +132,31 @@ namespace Webler
 		* \breif Application defined function.
 		*		 Called once by the Webler framework at server startup.
 		*
-		* \param p_Listener Listener handler used for listening for incoming connections.
-		*
-		* \see Listener
+		* \param p_Settings Setting class used to setup the server.
 		*
 		*/
 		virtual void Start(Settings & p_Settings) = 0;
+
+		/**
+		* \breif Application defined function.
+		*		 Path routing is done via this function.
+		*
+		* \param p_Router Request router.
+		*
+		*/
+		virtual void Route(Router & p_Router) = 0;
+
+		/**
+		* \breif General request error handle function.
+		*
+		*/
+		virtual void RequestError(Request & p_Request, Response & p_Response);
+
+		/**
+		* \breif Get directory of executing application.
+		*
+		*/
+		static const std::string & GetProgramDirectory();
 
 
 		// Friend functions and classes
@@ -151,7 +170,7 @@ namespace Webler
 		* \breif Bootup function for WeblerStart macro.
 		*
 		*/
-		int Boot(int p_ArgumentCount, char ** p_ppArgumentValues, Shared * p_pShared);
+		int Boot(int p_ArgumentCount, char ** p_ppArgumentValues);
 
 		void * m_pImp; //< Implementation
 

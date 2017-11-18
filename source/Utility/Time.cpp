@@ -94,7 +94,7 @@ namespace Webler
 				milliseconds /= 10;
 				count++;
 			}
-			count = (4 - count);
+			count = (3 - count);
 			ss << std::string(count, '0') << m_Milliseconds;
 		
 			return ss.str();

@@ -160,7 +160,7 @@ namespace Webler
 		
 		if (g_File.is_open() && newLog)
 		{
-			g_File << "Webler log created at YYYY-MM-DD:HH:MM:SS.\n";
+			g_File << "Webler log created at " << Utility::Time::Now().GetTimeString() << ".\n";
 			g_File << "---------------------------------------------------------\n";
 			g_File.flush();
 		}

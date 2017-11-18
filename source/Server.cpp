@@ -42,11 +42,18 @@ SOFTWARE.
 static Webler::Server * g_pServerInstance = nullptr;
 static Webler::Utility::ThreadValue<unsigned int> g_DaemonProcessCounter;
 static void SignalHandlerFunction(int signal);
+static void LoadServerInstance();
+
+static bool g_ServerInstanceInitialized = false;
+static std::string g_ProgramDirectory = "";
+static std::string g_ProgramPath = "";
+
 
 #define SERVER_IMP reinterpret_cast<Webler::ServerImp*>(this->m_pImp)
+#define DAEMON_IMP reinterpret_cast<Webler::DaemonImp*>(this->m_pImp)
+
 #define SERVER_IMP_FROM(Server) reinterpret_cast<Webler::ServerImp*>(Server->m_pImp)
 #define SETTINGS_IMP reinterpret_cast<SettingsImp*>(this->m_pImp)
-#define SERVER_SETTINGS_IMP reinterpret_cast<Webler::SettingsImp*>(reinterpret_cast<Webler::ServerImp*>(this->m_pImp)->pSettings->m_pImp)
 
 namespace Webler
 {
@@ -62,42 +69,7 @@ namespace Webler
 	}
 
 
-	// Server settings implementation
-	class ServerImp
-	{
-
-	public:
-
-		ServerImp() :
-			pSettings(nullptr)
-		{
-
-		}
-
-		~ServerImp()
-		{
-			for (auto it = Listeners.begin(); it != Listeners.end(); it++)
-			{
-				delete *it;
-			}
-		}
-
-		void Stop()
-		{
-
-		}
-
-		typedef std::set<Listener *> ListenerSet;
-		Utility::Semaphore	ExitSemaphore;
-		Server::Settings *  pSettings;
-		ListenerSet			Listeners;
-		unsigned int		MaxExecutionTime;
-
-	};
-
-
-
-
+	
 	// Daemon process class
 	class DaemonProcess
 	{
@@ -118,6 +90,8 @@ namespace Webler
 
 		bool Create(const std::string & p_Program, Socket::Handle & p_SocketHandle)
 		{
+			WEBLER_LOG(Log::Info, "Create process start.");
+
 			m_Thread = std::thread([this, p_Program, p_SocketHandle]()
 			{
 				BOOL ret = 0;
@@ -159,7 +133,7 @@ namespace Webler
 				// I create a new process(daemon)
 				GetStartupInfo(&siStartInfo);
 				const std::string programArgs = p_Program + " -daemon " + pipeName;
-
+				WEBLER_LOG(Log::Info, "Create process spawn.");
 				ret = CreateProcess(p_Program.c_str(), const_cast<LPSTR>(programArgs.c_str()),
 					NULL, NULL, // security attributes process/thread
 					TRUE,       // inherit handle
@@ -168,7 +142,7 @@ namespace Webler
 					".", // lpszCurDir
 					&siStartInfo, // lpsiStartInfo 
 					&piProc);
-
+				WEBLER_LOG(Log::Info, "Create process spawn done.");
 				if (ret == 0)
 				{
 					WEBLER_LOG(Log::Error, "Failed to create daemon process: " << pipeName << ". " << static_cast<int>(GetLastError()) );
@@ -231,6 +205,8 @@ namespace Webler
 				}
 
 				std::cout << "Writing done." << std::endl;
+
+				WEBLER_LOG(Log::Info, "Create process done.");
 
 				// I write the protocol information structure to the named pipe
 				/*if (WriteFile(hPipe, &protInfo, sizeof(protInfo), &dwBytes, NULL) == 0)
@@ -309,7 +285,7 @@ namespace Webler
 
 		bool Start(const unsigned short p_Port)
 		{
-			// Create socket
+			/*// Create socket
 			if ((m_Handle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) <= 0)
 			{
 				WEBLER_LOG(Log::Error, "Failed to create socket. Error code : " << std::to_string(WSAGetLastError()) );
@@ -397,7 +373,7 @@ namespace Webler
 					pAcceptHandle = nullptr;
 				}
 			});
-
+			*/
 			return true;
 		}
 
@@ -456,6 +432,117 @@ namespace Webler
 
 
 
+	// Server implementation
+	class ServerImp
+	{
+
+	public:
+
+		ServerImp(Server * p_pServer) :
+			pServer(p_pServer)
+		{
+
+		}
+
+		~ServerImp()
+		{
+			for (auto it = Listeners.begin(); it != Listeners.end(); it++)
+			{
+				delete *it;
+			}
+		}
+
+		int Boot(int p_ArgumentCount, char ** p_ppArgumentValues)
+		{
+			// Create settings
+			Server::Settings settings;
+			SettingsImp * pSettingsImp = reinterpret_cast<SettingsImp *>(settings.m_pImp);
+
+			// Run user definied Start function.
+			pServer->Start(settings);
+
+			// Set log class
+			Log * pLog = pSettingsImp->pLog;
+			if (pLog == nullptr)
+			{
+				const std::string logPath = Server::GetProgramDirectory() + "/server.log";
+				pLog = new Log(logPath);
+				if (pLog->IsOpen() == false)
+				{
+					std::cout << "Failed to open server log file: " << logPath << std::endl;
+					return 0;
+				}
+			}
+			pLog->m_Imp.SetCurrentLog(pLog);
+
+			// Set maximum execution time
+			MaxExecutionTime = pSettingsImp->MaxExecutionTime;
+
+			// Start to listen on ports in settings
+			/*for (auto it = pSettingsImp->ListenPorts.begin(); it != pSettingsImp->ListenPorts.end(); it++)
+			{
+				const unsigned int port = *it;
+				Listener * pListener = new Listener;
+				if (pListener->Start(port) == false)
+				{
+					std::cout << Log::Error << "Errror: Failed to listen on port " << port << ".";
+					WEBLER_LOG(Log::Error, "Failed to listen on port " << port << ".");
+					return 0;
+				}
+
+				Listeners.insert(pListener);
+			}*/
+
+			WEBLER_LOG(Webler::Log::Info, "Server running.");
+
+			// Bind signals
+			std::signal(SIGABRT, SignalHandlerFunction);
+			std::signal(SIGTERM, SignalHandlerFunction);
+			std::signal(SIGBREAK, SignalHandlerFunction);
+
+			// Wait inifinite of time.
+			Utility::Semaphore	ExitSemaphore;
+			ExitSemaphore.Wait();
+			return 0;
+		}
+
+	private:
+
+		// Variables
+		typedef std::set<Listener *> ListenerSet;
+
+		Server *			pServer;
+		ListenerSet			Listeners;
+		unsigned int		MaxExecutionTime;
+
+	};
+
+
+	// Daemon implementation
+	class DaemonImp
+	{
+
+	public:
+
+		DaemonImp()
+		{
+
+		}
+
+		~DaemonImp()
+		{
+
+		}
+
+		int Boot(int p_ArgumentCount, char ** p_ppArgumentValues)
+		{
+			return 0;
+		}
+
+	};
+
+
+
 
 	// Public server settings class
 	Server::Settings::~Settings()
@@ -508,10 +595,9 @@ namespace Webler
 
 
 	// Public server class
-	Server::Server() :
-		m_pImp(reinterpret_cast<void *>(new ServerImp))
+	Server::Server()
 	{
-
+		LoadServerInstance();
 	}
 
 	Server::~Server()
@@ -522,16 +608,18 @@ namespace Webler
 		}
 	}
 
-	int Server::Boot(int p_ArgumentCount, char ** p_ppArgumentValues, Shared * p_pShared)
+	void Server::RequestError(Request & p_Request, Response & p_Response)
 	{
-		// Add current server instance.
-		if (g_pServerInstance != nullptr)
-		{
-			std::cout << "Server is already booted. Only one instance of Server is allowed." << std::endl;
-			return 0;
-		}
-		g_pServerInstance = this;
+		p_Response << "Error - " << p_Response.GetCode();
+	}
 
+	const std::string & Server::GetProgramDirectory()
+	{
+		return g_ProgramDirectory;
+	}
+
+	int Server::Boot(int p_ArgumentCount, char ** p_ppArgumentValues)
+	{
 		// Initialize Windows sockets 2.2.
 		WSADATA wsaData;
 		if (WSAStartup(MAKEWORD(2, 2), &wsaData))
@@ -540,55 +628,17 @@ namespace Webler
 			return 0;
 		}
 
-		// Create settings
-		SERVER_IMP->pSettings = new Settings;
-		SettingsImp * pSettingsImp = SERVER_SETTINGS_IMP;
 
-		// Run user definied Start function.
-		Start(*SERVER_IMP->pSettings);
-
-		// Set log class
-		Log * pLog = pSettingsImp->pLog;
-		if (pLog == nullptr)
+		// Check if daemon is starting
+		if (p_ArgumentCount == 3 && strcmp("-daemon", p_ppArgumentValues[1]) == 0)
 		{
-			const std::string logPath = GetProgramDirectory() + "/server.log";
-			pLog = new Log(logPath);
-			if (pLog->IsOpen() == false)
-			{
-				std::cout << "Failed to open server log file: " <<  logPath << std::endl;
-				return 0;
-			}
+			m_pImp = reinterpret_cast<void *>(new DaemonImp);
+			return DAEMON_IMP->Boot(p_ArgumentCount, p_ppArgumentValues);
 		}
-		pLog->m_Imp.SetCurrentLog(pLog);
-
-		// Set maximum execution time
-		SERVER_IMP->MaxExecutionTime = pSettingsImp->MaxExecutionTime;
-
-		// Start to listen on ports in settings
-		for (auto it = pSettingsImp->ListenPorts.begin(); it != pSettingsImp->ListenPorts.end(); it++)
-		{
-			const unsigned int port = *it;
-			Listener * pListener = new Listener;
-			if (pListener->Start(port) == false)
-			{
-				std::cout << Log::Error << "Errror: Failed to listen on port " << port << ".";
-				WEBLER_LOG(Log::Error, "Failed to listen on port " << port << ".");
-				return 0;
-			}
-
-			SERVER_IMP->Listeners.insert(pListener);
-		}
-
-		WEBLER_LOG(Webler::Log::Info, "Server running." );
-
-		// Bind signals
-		std::signal(SIGABRT, SignalHandlerFunction);
-		std::signal(SIGTERM, SignalHandlerFunction);
-		std::signal(SIGBREAK, SignalHandlerFunction);
-
-		// Wait for Stop implementation call.
-		SERVER_IMP->ExitSemaphore.Wait();
-		return 0;
+		
+		// Start as server
+		m_pImp = reinterpret_cast<void *>(new ServerImp(this));
+		return SERVER_IMP->Boot(p_ArgumentCount, p_ppArgumentValues);
 	}
 
 }
@@ -599,7 +649,7 @@ namespace Webler
 static void SignalHandlerFunction(int signal)
 {
 	// Stop server
-	if (g_pServerInstance == nullptr)
+	/*if (g_pServerInstance == nullptr)
 	{
 		SERVER_IMP_FROM(g_pServerInstance)->Stop();
 		g_pServerInstance = nullptr;
@@ -610,5 +660,42 @@ static void SignalHandlerFunction(int signal)
 	{
 		WEBLER_LOG(Webler::Log::Info, "Server stopped.");
 		delete Webler::Log::GetCurrentLog();
+	}*/
+}
+
+void LoadServerInstance()
+{
+	if (g_ServerInstanceInitialized == false)
+	{
+		// Get program path
+		int pathLength = FILENAME_MAX;
+		char path[FILENAME_MAX + 1];
+
+		const int finalPathLength = GetModuleFileName(NULL, path, pathLength);
+		if (finalPathLength == 0)
+		{
+			throw new std::runtime_error("Failed to get executable path.");
+		}
+		path[finalPathLength] = 0;
+
+		// Get program directory
+		g_ProgramPath = path;
+		int dirPos = -1;
+		for (int i = g_ProgramPath.size() - 1; i >= 0; i--)
+		{
+			if (g_ProgramPath[i] == '/' || g_ProgramPath[i] == '\\')
+			{
+				dirPos = i;
+				break;
+			}
+		}
+		if (dirPos < 0)
+		{
+			throw new std::runtime_error("Failed to get executable directory.");
+			return;
+		}
+		g_ProgramDirectory = g_ProgramPath.substr(0, dirPos);
+
+		g_ServerInstanceInitialized = true;
 	}
 }

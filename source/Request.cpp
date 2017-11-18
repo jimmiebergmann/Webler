@@ -1,19 +1,38 @@
 #include <Request.hpp>
 
+#define REQUEST_IMP reinterpret_cast<Webler::RequestImp*>(this->m_pImp)
+
+static const std::string g_EmptyString = "";
+
 namespace Webler
 {
 
-	static const std::string g_EmptyString = "";
-
-	void Request::SetRouteParameter(const std::string p_Parameter, const std::string p_Value)
+	// Request implementation
+	class RequestImp
 	{
-		m_RouteWildcards[p_Parameter] = p_Value;
+
+	public:
+
+		RequestImp()
+		{
+
+		}
+
+		std::map<std::string, std::string> Wildcards;
+		std::map<std::string, std::string> HeaderFields;
+
+	};
+
+	// Public request class
+	void Request::SetWildcard(const std::string p_Name, const std::string p_Value)
+	{
+		REQUEST_IMP->Wildcards[p_Name] = p_Value;
 	}
 
 	const std::string & Request::GetWildcard(const std::string & p_Name) const
 	{
-		auto it = m_RouteWildcards.find(p_Name);
-		if (it != m_RouteWildcards.end())
+		auto it = REQUEST_IMP->Wildcards.find(p_Name);
+		if (it != REQUEST_IMP->Wildcards.end())
 		{
 			return it->second;
 		}
@@ -23,8 +42,8 @@ namespace Webler
 
 	const std::string & Request::GetHeaderField(const std::string & p_Field) const
 	{
-		auto it = m_HeaderFields.find(p_Field);
-		if (it != m_HeaderFields.end())
+		auto it = REQUEST_IMP->HeaderFields.find(p_Field);
+		if (it != REQUEST_IMP->HeaderFields.end())
 		{
 			return it->second;
 		}
@@ -36,16 +55,17 @@ namespace Webler
 	{
 	}
 
-	Request::Request(const Request & p_Request)
-	{
-	}
-
-	Request::Request(Daemon * p_pDaemon)
+	Request::Request(const Request & p_Request) :
+		m_pImp(reinterpret_cast<void *>(new RequestImp))
 	{
 	}
 
 	Request::~Request()
 	{
+		if (m_pImp)
+		{
+			delete m_pImp;
+		}
 	}
 
 }

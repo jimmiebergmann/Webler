@@ -35,21 +35,10 @@ SOFTWARE.
 *			and will start the server.
 *
 */
-#define WeblerStart(WeblerServer, WeblerDaemon, WeblerShared)\
+#define WeblerStart(WeblerServer)\
 	\
-	int main(int argc, char ** argv)\
+	int main(int p_ArgumentCount, char ** p_ppArgumentValues)\
 	{\
-		WeblerShared * pPrivate_weblerSharedClass = new WeblerShared;\
-		if(argc == 3 && strcmp("-daemon", argv[1]) == 0)\
-		{\
-			WeblerDaemon * pPrivate_weblerDaemonClass = new WeblerDaemon;\
-			return pPrivate_weblerDaemonClass->Boot(argc, argv, pPrivate_weblerSharedClass);\
-		}\
-		else\
-		{\
-			WeblerServer * pPrivate_weblerServerClass = new WeblerServer;\
-			return pPrivate_weblerServerClass->Boot(argc, argv, pPrivate_weblerSharedClass);\
-		}\
-		\
-		return 0;\
+		WeblerServer  Private_weblerServerClass;\
+		return Private_weblerServerClass.Boot(p_ArgumentCount, p_ppArgumentValues);\
 	}

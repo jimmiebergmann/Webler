@@ -46,14 +46,13 @@ namespace Webler
 	}
 
 	// Daemon implementation
-	// ...
 	class DaemonImp
 	{
 
 	public:
 
-		DaemonImp(Daemon * p_pDaemon) :
-			m_pDaemon(p_pDaemon)
+		DaemonImp() :
+			m_SocketHandle(0)
 		{
 
 		}
@@ -64,6 +63,8 @@ namespace Webler
 			DWORD dwBytes, dwMode;
 			HANDLE hPipe;
 			WSAPROTOCOL_INFO protInfo;
+
+			WEBLER_LOG(Log::Info, "ConnectToHost start.");
 
 			// I open in read mode the namedpipe created by the parent process
 			hPipe = CreateFile(
@@ -111,9 +112,9 @@ namespace Webler
 			}
 			m_SocketHandle = socketHandle;
 
-			WEBLER_LOG(Log::Info, "New daemon running.");
+			WEBLER_LOG(Log::Info, "ConnectToHost done.");
 
-			return 0;
+			return true;
 
 			/*
 			// I read the protocol information structure sent me by the parent process
@@ -135,7 +136,6 @@ namespace Webler
 			return true;
 		}
 
-		Daemon * m_pDaemon;
 		Socket::Handle m_SocketHandle;
 
 	};
@@ -144,7 +144,7 @@ namespace Webler
 
 	// Public daemon class
 	Daemon::Daemon() :
-		m_pImp(reinterpret_cast<void *>(new DaemonImp(this)))
+		m_pImp(reinterpret_cast<void *>(new DaemonImp))
 	{
 
 	}
@@ -159,6 +159,7 @@ namespace Webler
 
 	int Daemon::Boot(int p_ArgumentCount, char ** p_ppArgumentValues, Shared * p_pShared)
 	{
+		
 
 		// Load log
 		const std::string logPath = GetProgramDirectory() + "/daemons.log";
@@ -169,6 +170,8 @@ namespace Webler
 			return 0;
 		}
 		pLog->m_Imp.SetCurrentLog(pLog);
+
+		WEBLER_LOG(Log::Info, "Booting daemon.");
 
 #ifndef WEBLER_ROUTING_DEBUG
 		// Connect to host process and communicate in order to receive the socket.
@@ -185,16 +188,18 @@ namespace Webler
 		std::thread routingThread([this, &routingSemaphore, &router]()
 		{
 			// Create router
-			
 			Start(router);
-
+			WEBLER_LOG(Log::Info, "Routing is done.");
 			routingSemaphore.Notify();
 		});
 
-#ifndef WEBLER_ROUTING_DEBUG
+
 
 		// Get request
-		Request request(reinterpret_cast<Daemon *>(this));
+		Request request;
+
+
+#ifndef WEBLER_ROUTING_DEBUG
 		Response response(reinterpret_cast<Daemon *>(this));
 
 		if (DAEMON_IMP->ProcessRequest(request, response) == false)
@@ -205,7 +210,10 @@ namespace Webler
 #endif
 
 		// Wait until the routing is loaded, 5 seconds.
-		routingSemaphore.WaitFor(1000 * 5);
+		routingSemaphore.Wait();
+
+		// Wait until HTTP request header is parsed, we can then continue to find route.
+		// ... 
 
 		// Get matching routing.
 		static const std::string testPath = "/Customer/jimmie/animals";
@@ -218,9 +226,17 @@ namespace Webler
 			///return 0;
 		}
 
+		// Add wildcards to request
+		for (auto it = wildcards.begin(); it != wildcards.end(); it++)
+		{
+			request.SetWildcard(it->first, it->second);
+		}
+
 		// Join thread before closing.
 		routingThread.join();
 
+
+		WEBLER_LOG(Log::Info, "Done. " << testPath);
 		return 0;
 	}
 

@@ -47,6 +47,7 @@ namespace Webler
 
 		Router::CallbackFunction Callback;
 		unsigned int MaxExecutionTime;
+		bool Incasesensitive;
 
 	};
 
@@ -415,6 +416,12 @@ namespace Webler
 	Router::Route & Router::Route::MaxExecutionTime(const unsigned int p_Seconds)
 	{
 		ROUTE_IMP->MaxExecutionTime = p_Seconds;
+		return *this;
+	}
+
+	Router::Route & Router::Route::Incasesensitive(const bool p_Sensitive)
+	{
+		ROUTE_IMP->Incasesensitive = p_Sensitive;
 		return *this;
 	}
 

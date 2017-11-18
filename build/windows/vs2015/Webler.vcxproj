@@ -98,7 +98,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WEBLER_ROUTING_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -135,37 +135,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\..\source\Daemon.cpp" />
-    <ClCompile Include="..\..\..\source\Log.cpp" />
-    <ClCompile Include="..\..\..\source\Json.cpp" />
-    <ClCompile Include="..\..\..\source\Request.cpp" />
-    <ClCompile Include="..\..\..\source\Response.cpp" />
-    <ClCompile Include="..\..\..\source\Router.cpp" />
-    <ClCompile Include="..\..\..\source\Server.cpp" />
-    <ClCompile Include="..\..\..\source\Shared.cpp" />
-    <ClCompile Include="..\..\..\source\Utility\Semaphore.cpp" />
-    <ClCompile Include="..\..\..\source\Utility\Time.cpp" />
-    <ClCompile Include="..\..\..\source\Webler.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\include\Daemon.hpp" />
-    <ClInclude Include="..\..\..\include\Log.hpp" />
-    <ClInclude Include="..\..\..\include\Http.hpp" />
-    <ClInclude Include="..\..\..\include\Json.hpp" />
-    <ClInclude Include="..\..\..\include\Request.hpp" />
-    <ClInclude Include="..\..\..\include\Response.hpp" />
-    <ClInclude Include="..\..\..\include\Router.hpp" />
-    <ClInclude Include="..\..\..\include\Server.hpp" />
-    <ClInclude Include="..\..\..\include\Shared.hpp" />
-    <ClInclude Include="..\..\..\include\Utility\Semaphore.hpp" />
-    <ClInclude Include="..\..\..\include\Utility\ThreadValue.hpp" />
-    <ClInclude Include="..\..\..\include\Utility\Time.hpp" />
-    <ClInclude Include="..\..\..\include\Webler.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\include\Webler.inl" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

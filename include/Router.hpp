@@ -76,6 +76,12 @@ namespace Webler
 			*/
 			Route & MaxExecutionTime(const unsigned int p_Seconds);
 
+			/**
+			* \breif Decide if routing of URLs should be casesensitive or not.
+			*
+			*/
+			Route & Incasesensitive(const bool p_Sensitive = false);
+
 		private:
 
 			/**

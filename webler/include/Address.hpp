@@ -26,48 +26,53 @@ SOFTWARE.
 
 #pragma once
 
+#include <set>
 #include <string>
-#include <map>
+#include <initializer_list>
 
+
+/**
+* \breif Webler namespace scope.
+*
+*/
 namespace Webler
 {
 
-	class Daemon; //< Forward declaration
-
-	class Request
+	/**
+	* \breif Server class.
+	*
+	*/
+	class Address
 	{
 
 	public:
 
-		void SetWildcard(const std::string p_Name, const std::string p_Value);
-		const std::string & GetWildcard(const std::string & p_Name = "") const;
-		const std::string & GetHeaderField(const std::string & p_Field) const;
+		enum eType
+		{
+			Ipv4,
+			Ipv6
+		};
+
+
+		Address(const eType p_Type = Ipv4);
+		Address(const Address & p_Address);
+		Address(const unsigned int p_Address);
+		Address(const unsigned char * p_pSourceBytes, const unsigned int p_ByteCount);
+		Address(const std::initializer_list<unsigned char> & p_Bytes);
+
+		Address & GetByName(const std::string & p_Name);
+		const unsigned char GetType() const;
+		unsigned char GetByte(const unsigned int p_ByteIndex) const;
+		void GetBytes(unsigned char * p_DestinationBytes, const unsigned int p_ByteCount) const;
+		void SetByte(const unsigned char p_Byte, const unsigned int p_ByteIndex);
+		void SetBytes(const unsigned char * p_SourceBytes, const unsigned int p_ByteCount);
+
+		static const Address & LocalHostIpv4;
 
 	private:
 
-		friend class Daemon;
-
-		/**
-		* \breif Default constructor
-		*
-		*/
-		Request();
-
-		/**
-		* \breif Copy constructor
-		*
-		*/
-		Request(const Request & p_Request);
-
-		/**
-		* \breif Destructor
-		*
-		*/
-		~Request();
-
-	private:
-
-		void * m_pImp; //< Implementation
+		eType			m_Type;
+		unsigned char	m_Bytes[16];
 
 	};
 

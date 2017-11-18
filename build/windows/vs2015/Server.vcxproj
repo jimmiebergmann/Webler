@@ -18,8 +18,17 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\server\source\Main.cpp" />
+    <ClCompile Include="..\..\..\server\source\Server.cpp" />
+    <ClCompile Include="..\..\..\webler\source\Address.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\server\include\Server.hpp" />
+    <ClInclude Include="..\..\..\webler\include\Address.hpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{7BED88BA-43D2-4A17-AA3C-1E7DA29901D4}</ProjectGuid>
+    <ProjectGuid>{DBFF9394-73E7-4BF2-9712-807611F095AC}</ProjectGuid>
     <RootNamespace>HelloWorld</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -70,30 +79,31 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)..\..\..\bin\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\obj\windows\vs2015\ExampleHelloWorld\debug\x86\</IntDir>
-    <TargetName>$(ProjectName)-d</TargetName>
-    <IncludePath>..\..\..\include;$(IncludePath)</IncludePath>
-    <LibraryPath>..\..\..\lib;$(LibraryPath)</LibraryPath>
+    <IntDir>$(SolutionDir)..\..\..\obj\windows\vs2015\Server\debug\x86\</IntDir>
+    <TargetName>Webler-d</TargetName>
+    <IncludePath>..\..\..\server\include;..\..\..\webler\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IntDir>$(SolutionDir)..\..\..\obj\windows\vs2015\ExampleHelloWorld\release\x86\</IntDir>
+    <IntDir>$(SolutionDir)..\..\..\obj\windows\vs2015\Server\release\x86\</IntDir>
     <OutDir>$(SolutionDir)..\..\..\bin\</OutDir>
-    <IncludePath>..\..\..\include;$(IncludePath)</IncludePath>
-    <LibraryPath>..\..\..\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\..\..\server\include;..\..\..\webler\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <TargetName>Webler</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>..\..\..\include;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\server\include;..\..\..\webler\include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)..\..\..\bin\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\obj\windows\vs2015\ExampleHelloWorld\release\x64\</IntDir>
-    <TargetName>$(ProjectName)-x64</TargetName>
-    <LibraryPath>..\..\..\lib;$(LibraryPath)</LibraryPath>
+    <IntDir>$(SolutionDir)..\..\..\obj\windows\vs2015\Server\release\x64\</IntDir>
+    <TargetName>Webler-x64</TargetName>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>..\..\..\include;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\server\include;..\..\..\webler\include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)..\..\..\bin\</OutDir>
-    <IntDir>$(SolutionDir)..\..\..\obj\windows\vs2015\ExampleHelloWorld\debug\x64\</IntDir>
-    <TargetName>$(ProjectName)-x64-d</TargetName>
-    <LibraryPath>..\..\..\lib;$(LibraryPath)</LibraryPath>
+    <IntDir>$(SolutionDir)..\..\..\obj\windows\vs2015\Server\debug\x64\</IntDir>
+    <TargetName>Webler-x64-d</TargetName>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -102,7 +112,7 @@
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Webler-d.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>Debug</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -113,7 +123,7 @@
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Webler-x64-d.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -127,7 +137,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Webler.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -141,12 +151,9 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Webler-x64.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\..\examples\HelloWorld\Main.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

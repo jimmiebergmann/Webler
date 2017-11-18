@@ -54,7 +54,7 @@ namespace Webler
 	public:
 
 		// Friend classes
-		friend class Server;
+		friend class ServerImp;
 		friend class Daemon;
 
 		enum eType
