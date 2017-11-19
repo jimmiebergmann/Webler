@@ -30,18 +30,20 @@ SOFTWARE.
 #include <thread>
 #include <vector>
 #include <queue>
+#include <map>
+#include <fstream>
 #include <iostream>
 #include <chrono>
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
 
-/*
+
 #include <stdlib.h>
 #include <crtdbg.h>
 
 #define new new(_NORMAL_BLOCK, __FILE__, __LINE__)
-*/
+
 
 #define SERVER_SETTINGS_IMP reinterpret_cast<Webler::ServerSettingsImp*>(this->m_pImp)
 #define SERVER_IMP reinterpret_cast<Webler::ServerImp*>(this->m_pImp)
@@ -182,19 +184,6 @@ namespace Webler
 	*
 	******************************************************/
 
-	// Hidden server settings implementations
-	class ServerSettingsImp
-	{
-
-	public:
-
-		Server::Settings::Ports ListenerPorts;
-		unsigned short			DaemonListenerPort;
-		std::string				DaemonProcess;
-
-	};
-	
-
 	// Hidden server implementations
 	class ServerImp
 	{
@@ -207,8 +196,12 @@ namespace Webler
 		void CreateListeners();
 		void Listen();
 		void StartDaemonListener();
+		Process * GetIdleProcess();
 
 		void NotifyProcessTermination(Process * p_pProcess);
+
+		void SendInternalError(SocketHandle * p_pSockethandle);
+
 
 		// Typedefs
 		typedef std::set<Listener*> Listeners;
@@ -229,15 +222,16 @@ namespace Webler
 		};
 
 		typedef std::queue<Process*> ProcessQueue;
+		typedef std::map<unsigned int, Process*> ProcessMap;
 
 		// Variables
 		ThreadValue<bool>			m_Started;
 		Server::Settings			m_Settings;
 		Semaphore					m_StopSemaphore;
 		Listeners					m_Listeners;
+		ThreadValue<ProcessMap>		m_SpawnedProcesses;
 		ThreadValue<ProcessQueue>	m_IdleProcesses;
 		ThreadValue<ProcessQueue>	m_WorkingProcesses;
-		Semaphore					m_IdleProcessSempahore;
 		DaemonListener *			m_pDaemonListener;
 
 	};
@@ -256,12 +250,18 @@ namespace Webler
 
 	private:
 
-		ServerImp *			m_pServerImp;
-		ThreadValue<bool>	m_Created;
-		ThreadValue<bool>	m_Started;
-		unsigned short		m_Port;
-		SocketHandle		m_SocketHandle;
-		std::thread			m_Thread;
+		typedef std::set<std::thread *> TheadSet;
+
+		void HandleConnection(SocketHandle * p_pSocketHandle);
+
+		ServerImp *					m_pServerImp;
+		ThreadValue<bool>			m_Created;
+		ThreadValue<bool>			m_Started;
+		unsigned short				m_Port;
+		SocketHandle				m_SocketHandle;
+		std::thread					m_Thread;
+		ThreadValue<TheadSet>		m_ConnectionThreads;
+
 
 	};
 
@@ -288,7 +288,7 @@ namespace Webler
 		unsigned int GetProcessId() const;
 
 		static unsigned int GetProcessIdFromSocket(const SocketHandle & p_SocketHandle);
-
+		void Handshake();
 
 	private:
 
@@ -355,7 +355,7 @@ namespace Webler
 	void ServerImp::CreateListeners()
 	{
 		// Go throgh all listening ports
-		auto ports = m_Settings.ListeningPorts();
+		auto ports = m_Settings.ListenPorts;
 
 		Listener * pListener = nullptr;
 		bool error = false;
@@ -401,7 +401,7 @@ namespace Webler
 		m_pDaemonListener = new DaemonListener;
 
 		int error = 0;
-		unsigned short daemonPort = m_Settings.GetDaemonPort();
+		unsigned short daemonPort = m_Settings.DaemonPort;
 
 		// Create socket
 		if ((m_pDaemonListener->m_SocketHandle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) <= 0)
@@ -474,9 +474,6 @@ namespace Webler
 					if (error == WSAENOTSOCK)
 					{
 						delete pAcceptHandle;
-
-						/*std::cout << "Listen socket of port " + std::to_string(m_Port) +
-						" closed unexpectedly. Error code: " << WSAGetLastError() << std::endl;*/
 						return;
 					}
 					// Peer reseted connection.
@@ -502,7 +499,30 @@ namespace Webler
 					continue;
 				}
 
-				// Put daemon in queue.
+				// Check if daemon is spawned by server.
+				{
+					std::lock_guard<std::mutex> spawnLock(m_SpawnedProcesses.Mutex);
+
+					auto spawnIt = m_SpawnedProcesses.Value.find(daemonPid);
+					if (spawnIt != m_SpawnedProcesses.Value.end())
+					{
+						std::lock_guard<std::mutex> idleLock(m_IdleProcesses.Mutex);
+
+						Process * pProcess = spawnIt->second;
+						m_SpawnedProcesses.Value.erase(spawnIt);
+						m_IdleProcesses.Value.push(pProcess);
+
+						// Reset socket for next loop
+						pAcceptHandle = nullptr;
+						continue;
+					}
+
+				}
+
+				// Daemon is not spawned by server, add it to idle queue.
+				// System spawned daemons are mainly used for debugging purposes.
+				// The user can run the daemon process via a debugger, but still attach it to the server.
+				// Great, isn't it?!
 				Process * pProcess = nullptr;
 				try
 				{
@@ -514,13 +534,12 @@ namespace Webler
 					closesocket(*pAcceptHandle);
 					continue;
 				}
-				
-				m_IdleProcesses.Mutex.lock();
-				m_IdleProcesses.Value.push(pProcess);
-				m_IdleProcesses.Mutex.unlock();
-				m_IdleProcessSempahore.Notify();
 
-				std::cout << "Daemon connected." << std::endl;
+				// Add process to idle queue.
+				{
+					std::lock_guard<std::mutex> idleLock(m_IdleProcesses.Mutex);
+					m_IdleProcesses.Value.push(pProcess);
+				}
 
 				// Reset socket for next loop
 				pAcceptHandle = nullptr;
@@ -534,9 +553,46 @@ namespace Webler
 		});
 	}
 
+	Process * ServerImp::GetIdleProcess()
+	{
+		Process * pProcess = nullptr;
+
+		{
+			std::lock_guard<std::mutex> idleLock(m_IdleProcesses.Mutex);
+			
+			if (m_IdleProcesses.Value.size())
+			{
+				pProcess = m_IdleProcesses.Value.front();
+				m_IdleProcesses.Value.pop();
+				
+				{
+					std::lock_guard<std::mutex> workingLock(m_WorkingProcesses.Mutex);
+
+					m_WorkingProcesses.Value.push(pProcess);
+				}
+
+			}
+		}
+
+		if (pProcess != nullptr)
+		{
+			return pProcess;
+		}
+
+		// Spawn new process, do some attemps, if failing, send internal server error.
+
+		return nullptr;
+	}
+
 	void ServerImp::NotifyProcessTermination(Process * p_pProcess)
 	{
 
+	}
+
+	void ServerImp::SendInternalError(SocketHandle * p_pSockethandle)
+	{
+		const std::string error = "error!";
+		send(*p_pSockethandle, error.c_str(), error.size(), 0);
 	}
 
 	ServerImp::DaemonListener::DaemonListener() :
@@ -573,12 +629,15 @@ namespace Webler
 			throw std::exception(std::string("Failed to get process handle of pid " + std::to_string(m_ProcessId)).c_str());
 		}
 
+		// Run thread to check if process terminate.
 		m_Thread = std::thread([this]()
 		{
 			DWORD status = 0;
 			while (m_ClosingThread() == false)
 			{
 				WaitForSingleObject(m_ProcessHandle, INFINITE);
+
+				// Notify server about termination. 
 				m_pServerImp->NotifyProcessTermination(this);
 			}
 		});
@@ -663,6 +722,11 @@ namespace Webler
 		}
 
 		return pid;
+	}
+
+	void Process::Handshake()
+	{
+
 	}
 
 
@@ -755,9 +819,6 @@ namespace Webler
 					if (error == WSAENOTSOCK)
 					{
 						delete pAcceptHandle;
-
-						/*std::cout << "Listen socket of port " + std::to_string(m_Port) +
-							" closed unexpectedly. Error code: " << WSAGetLastError() << std::endl;*/
 						return;
 					}
 					// Peer reseted connection.
@@ -774,8 +835,8 @@ namespace Webler
 					continue;
 				}
 
-				std::cout << "Client connected." << std::endl;
-
+				HandleConnection(pAcceptHandle);
+				
 				// Reset socket for next loop
 				pAcceptHandle = nullptr;
 			}
@@ -787,6 +848,28 @@ namespace Webler
 		});
 	}
 
+	void Listener::HandleConnection(SocketHandle * p_pSocketHandle)
+	{
+		std::thread * pThread = new std::thread([this, &p_pSocketHandle]()
+		{
+			Process * pProcess = m_pServerImp->GetIdleProcess();
+			if (pProcess == nullptr)
+			{
+				m_pServerImp->SendInternalError(p_pSocketHandle);
+				closesocket(*p_pSocketHandle);
+				delete p_pSocketHandle;
+				return;
+			}
+
+			pProcess->Handshake();
+		});
+
+		{
+			std::lock_guard<std::mutex> lock(m_ConnectionThreads.Mutex);
+			m_ConnectionThreads.Value.insert(pThread);
+		}
+	}
+
 
 	/******************************************************
 	* Public implementations
@@ -794,62 +877,104 @@ namespace Webler
 	******************************************************/
 
 	// Public server settings implementations
-	Server::Settings::Settings(const std::initializer_list<unsigned short> & p_ListenPorts,
-		const std::string & p_DaemonProcess,
-		const unsigned short p_DaemonPort) :
-		m_pImp(reinterpret_cast<void*>(new ServerSettingsImp))
+	Server::Settings::Settings()
 	{
-		auto pImp = SERVER_SETTINGS_IMP;
+		
+	}
 
-		for (auto it = p_ListenPorts.begin(); it != p_ListenPorts.end(); it++)
+	bool Server::Settings::LoadFromFile(const std::string & p_Filename)
+	{
+		std::ifstream file(p_Filename.c_str());
+		if(file.is_open() == false)
 		{
-			pImp->ListenerPorts.insert(*it);
+			return false;
 		}
-		pImp->DaemonListenerPort = p_DaemonPort;
-		pImp->DaemonProcess = p_DaemonProcess;
-	}
 
-	Server::Settings::~Settings()
-	{
-		if (m_pImp)
+		// Read each line
+		std::string line = "";
+		int loops = 1;
+		while (std::getline(file, line))
 		{
-			delete m_pImp;
+			if (line.size() == 0)
+			{
+				continue;
+			}
+
+			auto start = line.find_first_not_of(' ');
+			auto end = line.find_last_not_of(' ');
+			if (start != std::string::npos && end != std::string::npos)
+			{
+				line = line.substr(start, (end - start) + 1);
+			}
+			else
+			{
+				continue;
+			}
+
+			if (line.size() == 0)
+			{
+				continue;
+			}
+
+			start = line.find_first_not_of('\t');
+			end = line.find_last_not_of('\t');
+			if (start != std::string::npos && end != std::string::npos)
+			{
+				line = line.substr(start, (end - start) + 1);
+			}
+			else
+			{
+				continue;
+			}
+
+			if (line.size() == 0)
+			{
+				continue;
+			}
+
+			// Get first word
+			auto wordend = line.find_first_of(' ');
+			if (wordend == std::string::npos)
+			{
+				throw std::exception(std::string("Setting \"" + line + "\" missing value.").c_str());
+			}
+			std::string setting = line.substr(0, wordend);
+
+			if (setting == "listen")
+			{
+
+			}
+			else if (setting == "daemon")
+			{
+
+			}
+			else if (setting == "daemonport")
+			{
+
+			}
+			else
+			{
+				throw std::exception(std::string("Unknown setting: \"" + setting + "\".").c_str());
+			}
 		}
+
+		file.close();
+		return true;
 	}
 
-	void Server::Settings::Listen(const unsigned short p_Port)
+	bool Server::Settings::LoadFromFile(std::initializer_list<std::string> p_Filenames)
 	{
-		SERVER_SETTINGS_IMP->ListenerPorts.insert(p_Port);
-	}
+		bool status = false;
 
-	void Server::Settings::Mute(const unsigned short p_Port)
-	{
-		SERVER_SETTINGS_IMP->ListenerPorts.erase(p_Port);
-	}
+		for (auto it = p_Filenames.begin(); it != p_Filenames.end(); it++)
+		{
+			if (LoadFromFile(*it) == true)
+			{
+				return true;
+			}
+		}
 
-	const Server::Settings::Ports & Server::Settings::ListeningPorts() const
-	{
-		return SERVER_SETTINGS_IMP->ListenerPorts;
-	}
-
-	void Server::Settings::SetDaemonPort(const unsigned short p_Port)
-	{
-		SERVER_SETTINGS_IMP->DaemonListenerPort = p_Port;
-	}
-
-	unsigned short Server::Settings::GetDaemonPort() const
-	{
-		return SERVER_SETTINGS_IMP->DaemonListenerPort;
-	}
-
-	void Server::Settings::SetDaemonProcess(const std::string & p_DaemonPath)
-	{
-		SERVER_SETTINGS_IMP->DaemonProcess = p_DaemonPath;
-	}
-
-	const std::string & Server::Settings::GetDaemonProcess() const
-	{
-		return SERVER_SETTINGS_IMP->DaemonProcess;
+		return false;
 	}
 
 
@@ -897,7 +1022,7 @@ namespace Webler
 		}
 
 		// Set new settings.
-		p_Settings.SetDaemonPort(pImp->m_pDaemonListener->m_DaemonPort);
+		p_Settings.DaemonPort = pImp->m_pDaemonListener->m_DaemonPort;
 	}
 
 	void Server::Stop()

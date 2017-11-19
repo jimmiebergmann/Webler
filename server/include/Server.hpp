@@ -57,71 +57,28 @@ namespace Webler
 
 		public:
 
-			// Friend classes
-			friend class Server;
-
-			// Typedefs
-			typedef std::set<unsigned short> Ports;
-
 			/**
 			* \breif Constructor
 			*
 			*/
-			Settings(const std::initializer_list<unsigned short> & p_ListenPorts = {},
-				const std::string & p_DaemonProcess = "Daemon.exe",
-				const unsigned short p_DaemonPort = 0);
+			Settings();
 
 			/**
-			* \breif Destructor
+			* \breif Load from file.
+			*
+			* \param p_Filenames First try the first filename, if invalid, go on with next one.
+			*
+			* \throw std::exception on error.
+			*
+			* \return false if filename is invalid, else true.
 			*
 			*/
-			~Settings();
+			bool LoadFromFile(const std::string & p_Filename);
+			bool LoadFromFile(std::initializer_list<std::string> p_Filenames);
 
-			/**
-			* \breif Listen on given port.
-			*
-			*/
-			void Listen(const unsigned short p_Port);
-
-			/**
-			* \breif Do not listen on given port
-			*
-			*/
-			void Mute(const unsigned short p_Port);
-
-			/**
-			* \breif Get set of listenting ports.
-			*
-			*/
-			const Ports & ListeningPorts() const;
-
-			/**
-			* \breif Get daemon listener port
-			*
-			*/
-			void SetDaemonPort(const unsigned short p_Port);
-
-			/**
-			* \breif Get daemon listener port
-			*
-			*/
-			unsigned short GetDaemonPort() const;
-
-			/**
-			* \breif Set path for daemon executable.
-			*
-			*/
-			void SetDaemonProcess(const std::string & p_DaemonPath);
-
-			/**
-			* \breif Get path for daemon executable.
-			*
-			*/
-			const std::string & GetDaemonProcess() const;
-
-		private:
-
-			void * m_pImp; ///< Implementation
+			std::set<unsigned short>	ListenPorts;
+			unsigned short				DaemonPort;
+			std::string					DaemonExecutable;
 
 		};
 
